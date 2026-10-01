@@ -4,6 +4,11 @@ import { getProduct } from "../model/catalog";
 import type { PlacedItem } from "../model/types";
 import { formatUsd, summarize } from "./summary";
 
+/** Named by role, so the monis.rent slugs live in one place. */
+const DESK = "electrical-adjustable-desk";
+const MONITOR = "27-4-k-multimedia-monitor";
+const PLANT = "plant-monstera";
+
 let nextOrdinal = 0;
 
 function product(id: string) {
@@ -34,11 +39,7 @@ test("an empty studio costs nothing", () => {
 
 test("duplicates collapse into one line with a quantity", () => {
   const summary = summarize(
-    [
-      place("monitor-27-4k"),
-      place("monitor-27-4k"),
-      place("desk-electric-standing"),
-    ],
+    [place(MONITOR), place(MONITOR), place(DESK)],
     [],
     2,
   );
@@ -46,9 +47,7 @@ test("duplicates collapse into one line with a quantity", () => {
   assert.equal(summary.lines.length, 2);
   assert.equal(summary.itemCount, 3);
 
-  const monitors = summary.lines.find(
-    (line) => line.product.id === "monitor-27-4k",
-  );
+  const monitors = summary.lines.find((line) => line.product.id === MONITOR);
   assert.ok(monitors);
   assert.equal(monitors.quantity, 2);
   assert.equal(monitors.weeklyTotal, monitors.ratePerWeek * 2);
@@ -56,7 +55,7 @@ test("duplicates collapse into one line with a quantity", () => {
 });
 
 test("a cart item is billed even though it is not in the room", () => {
-  const monitor = product("monitor-27-4k");
+  const monitor = product(MONITOR);
   const summary = summarize([], [{ productId: monitor.id, quantity: 2 }], 4);
 
   assert.equal(summary.lines.length, 1);
@@ -66,7 +65,7 @@ test("a cart item is billed even though it is not in the room", () => {
 });
 
 test("a product in the room and in the cart shares one line", () => {
-  const monitor = product("monitor-27-4k");
+  const monitor = product(MONITOR);
   const summary = summarize(
     [place(monitor.id)],
     [{ productId: monitor.id, quantity: 2 }],
@@ -80,18 +79,14 @@ test("a product in the room and in the cart shares one line", () => {
 });
 
 test("staging items never reach checkout", () => {
-  const summary = summarize(
-    [place("desk-electric-standing"), place("plant-monstera")],
-    [],
-    4,
-  );
+  const summary = summarize([place(DESK), place(PLANT)], [], 4);
 
   assert.equal(summary.lines.length, 1);
   assert.equal(summary.itemCount, 1);
 });
 
 test("stays over a month use the long-stay rate", () => {
-  const desk = product("desk-electric-standing");
+  const desk = product(DESK);
   assert.notEqual(desk.longStayPricePerWeek, desk.pricePerWeek);
 
   assert.equal(
@@ -105,7 +100,7 @@ test("stays over a month use the long-stay rate", () => {
 });
 
 test("the total is the weekly rate for the whole stay plus deposits", () => {
-  const desk = product("desk-electric-standing");
+  const desk = product(DESK);
   const summary = summarize([place(desk.id), place(desk.id)], [], 3);
 
   const expectedPerWeek = desk.pricePerWeek * 2;
@@ -117,7 +112,7 @@ test("the total is the weekly rate for the whole stay plus deposits", () => {
 });
 
 test("a cart item carries its deposit too", () => {
-  const desk = product("desk-electric-standing");
+  const desk = product(DESK);
   const summary = summarize([], [{ productId: desk.id, quantity: 2 }], 1);
 
   assert.equal(summary.deposit, (desk.securityDeposit ?? 0) * 2);

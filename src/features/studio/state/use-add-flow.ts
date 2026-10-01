@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { displayName, getProduct } from "../model/catalog";
-import { useStudioStore } from "./store";
+import { type AddResult, useStudioStore } from "./store";
 
 /** The product an add attempt stalled on, waiting on the cart confirmation. */
 type Pending = {
@@ -21,11 +21,14 @@ export function useAddFlow() {
   const [pending, setPending] = useState<Pending | null>(null);
 
   const add = useCallback(
-    (productId: string, hostId?: string) => {
+    (productId: string, hostId?: string): AddResult => {
       const result = addProduct(productId, hostId);
-      if (result.status === "placed" || result.status === "unknown") return;
 
-      setPending({ productId, reason: result.status });
+      if (result.status === "needs-desk" || result.status === "no-space") {
+        setPending({ productId, reason: result.status });
+      }
+
+      return result;
     },
     [addProduct],
   );

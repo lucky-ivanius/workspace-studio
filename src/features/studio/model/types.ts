@@ -2,14 +2,6 @@ import type { Footprint, GridCell } from "./grid";
 
 export type Surface = "floor" | "desk";
 
-export type ProductCategory =
-  | "desk"
-  | "chair"
-  | "monitor"
-  | "lighting"
-  | "decor"
-  | "extras";
-
 /**
  * PNG dimensions are declared in design pixels. Source files are authored at
  * ASSET_PIXEL_RATIO (see assets.ts), so a 256x320 design asset ships as a
@@ -36,18 +28,6 @@ export type AssetSpec = {
   flat?: boolean;
   /** Present on desks: lets other items sit on top. */
   deskSurface?: { elevation: number; footprint: Footprint; offset: GridCell };
-};
-
-export type Product = {
-  id: string;
-  /** Matches the monis.rent product slug so live data can be joined in. */
-  slug: string;
-  name: string;
-  category: ProductCategory;
-  assetId: string;
-  /** USD per week. See catalog.ts for provenance. */
-  pricePerWeek: number;
-  summary: string;
 };
 
 export type PlacedItem = {

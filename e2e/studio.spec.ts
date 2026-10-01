@@ -56,23 +56,54 @@ async function cursorOver(page: Page, point: { x: number; y: number }) {
   return page.locator("canvas").evaluate((element) => element.style.cursor);
 }
 
+/** The picker, named so it is never confused with the info sheet. */
+function picker(page: Page) {
+  return page.getByRole("dialog", {
+    name: /Add to (your workspace|this desk)/,
+  });
+}
+
 /**
- * Adds a product through the in-canvas dialog, the only way in. Base UI
- * unmounts hidden tab panels, so the tab holding the product has to be picked
- * before the row exists.
+ * Opens the picker and clicks one product's add button, leaving the picker
+ * exactly as it is afterwards. Only a placement closes it, so a caller that
+ * expects the room to change wants `add` instead.
+ *
+ * The dialog filters in place, so searching is the quickest way to reach a card.
  */
-async function add(page: Page, tab: string, name: string) {
+async function pick(page: Page, name: string) {
   await page.getByRole("button", { name: "Add item" }).first().click();
 
-  const dialog = page.getByRole("dialog");
+  const dialog = picker(page);
   await expect(dialog).toBeVisible();
 
-  await dialog.getByRole("tab", { name: tab }).click();
+  await dialog.getByPlaceholder("Search products").fill(name);
   await dialog.getByRole("button", { name: `Add ${name}` }).click();
 
+  return dialog;
+}
+
+/** Adds a product that fits the room, which closes the picker behind it. */
+async function add(page: Page, name: string) {
+  const dialog = await pick(page, name);
+
   // The backdrop outlives the close by one animation, and it would swallow the
-  // canvas clicks that come next.
-  await expect(dialog).toBeHidden();
+  // canvas clicks that come next. That exit transition can crawl when several
+  // software-rasterised WebGL tabs are sharing a CPU, so it gets longer than the
+  // default to finish.
+  await expect(dialog).toBeHidden({ timeout: 15_000 });
+}
+
+/** Dismisses a picker that stayed open, to get at the summary behind it. */
+async function closePicker(page: Page) {
+  await picker(page).getByRole("button", { name: "Close" }).click();
+  await expect(picker(page)).toBeHidden();
+}
+
+/** The grid's scroller. The category rail has one of its own, hence the filter. */
+function catalogList(page: Page) {
+  return picker(page)
+    .locator("[data-slot=scroll-area-viewport]")
+    .filter({ has: page.getByRole("button", { name: /^Add / }) });
 }
 
 function summary(page: Page) {
@@ -183,10 +214,17 @@ test("a desk accessory offers the cart when there is no desk", async ({
 }) => {
   const { problems } = await openStudio(page);
 
-  await add(page, "Monitors", '27" 4K Multimedia Monitor');
+  const dialog = await pick(page, `27" 4K Multimedia Monitor`);
 
   await expect(page.getByText("There's no desk")).toBeVisible();
   await page.getByRole("button", { name: "Add to cart" }).click();
+
+  // The picker was never closed behind the question, so answering it does not
+  // cost the place in the catalogue the choice was made from.
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("1 added")).toBeVisible();
+
+  await closePicker(page);
 
   // It is billed, but it never reached the room.
   await expect(summary(page).getByText("1 in cart")).toBeVisible();
@@ -201,8 +239,13 @@ test("a desk accessory offers the cart when there is no desk", async ({
 test("declining the cart leaves the setup untouched", async ({ page }) => {
   const { problems } = await openStudio(page);
 
-  await add(page, "Monitors", '27" 4K Multimedia Monitor');
+  const dialog = await pick(page, `27" 4K Multimedia Monitor`);
   await page.getByRole("button", { name: "Cancel" }).click();
+
+  // Still picking, so a desk is one click away rather than a reopen away.
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("added")).toBeHidden();
+  await closePicker(page);
 
   await expect(page.getByText("Nothing in the room yet")).toBeVisible();
   await expect(
@@ -212,14 +255,36 @@ test("declining the cart leaves the setup untouched", async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
+test("a cart-only product skips the room without asking", async ({ page }) => {
+  const { problems } = await openStudio(page);
+
+  // A cable has no isometric presence, so it never reaches the canvas.
+  const dialog = await pick(page, "8K HDMI Cable");
+
+  // Nothing to place means nothing to confirm and nothing new to look at, so
+  // the picker stays open and the card itself reports the add.
+  await expect(dialog).toBeVisible();
+  await expect(page.getByText("There's no desk")).toBeHidden();
+  await expect(page.getByText("No space left")).toBeHidden();
+  await expect(dialog.getByText("1 added")).toBeVisible();
+
+  await closePicker(page);
+
+  await expect(summary(page).getByText("8K HDMI Cable")).toBeVisible();
+  await expect(summary(page).getByText("1 in cart")).toBeVisible();
+  await expect(page.getByText("Nothing in the room yet")).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
 test("adding a desk, a chair and a monitor builds the bill", async ({
   page,
 }) => {
   const { problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
-  await add(page, "Chairs", "Ergonomic Office Chair");
-  await add(page, "Monitors", '27" 4K Multimedia Monitor');
+  await add(page, "Electrical Adjustable Desk");
+  await add(page, "Ergonomic Office Chair");
+  await add(page, `27" 4K Multimedia Monitor`);
 
   await expect(
     summary(page).getByText("Electrical Adjustable Desk"),
@@ -243,24 +308,136 @@ test("adding a desk, a chair and a monitor builds the bill", async ({
   expect(problems).toEqual([]);
 });
 
-test("a desk offers its own add menu on the canvas", async ({ page }) => {
+test("a desk's own add button opens a picker narrowed to what fits on it", async ({
+  page,
+}) => {
   const { problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Electrical Adjustable Desk");
 
   // Adding selects the desk, so its toolbar is already up.
   await expect(deskMenu(page)).toBeVisible();
   await deskMenu(page).click();
 
+  const dialog = picker(page);
+  await expect(dialog).toBeVisible();
   await expect(
-    page.getByRole("menuitem", { name: "Add monitor" }),
+    dialog.getByText("Everything here fits on a desk"),
   ).toBeVisible();
-  await page.getByRole("menuitem", { name: "Add lamp" }).click();
-  await page.getByRole("menuitem", { name: "Smart LED Desk Lamp 1S" }).click();
+
+  // Floor-only categories drop out, because nothing in them sits on a desk.
+  await expect(
+    dialog.getByRole("button", { name: /^Health & Fitness/ }),
+  ).toBeHidden();
+
+  await dialog.getByPlaceholder("Search products").fill("Smart LED Desk Lamp");
+  await dialog
+    .getByRole("button", { name: "Add Smart LED Desk Lamp 1S" })
+    .click();
+  await expect(dialog).toBeHidden();
 
   // On the desk, not stranded in the cart.
   await expect(summary(page).getByText("Smart LED Desk Lamp 1S")).toBeVisible();
   await expect(summary(page).getByText("in cart")).toBeHidden();
+
+  expect(problems).toEqual([]);
+});
+
+test("the info dialog shows the spec sheet and can add from there", async ({
+  page,
+}) => {
+  const { problems } = await openStudio(page);
+
+  await page.getByRole("button", { name: "Add item" }).first().click();
+
+  const grid = picker(page);
+  await grid.getByPlaceholder("Search products").fill("Ergonomic Office Chair");
+  await grid
+    .getByRole("button", { name: "Info for Ergonomic Office Chair" })
+    .click();
+
+  // The sheet is titled with the product, which is what tells it from the grid.
+  const sheet = page.getByRole("dialog", { name: "Ergonomic Office Chair" });
+  await expect(sheet.getByText("Specifications")).toBeVisible();
+  await expect(sheet.getByText("What's included")).toBeVisible();
+  await expect(sheet.getByText("Refundable deposit")).toBeVisible();
+  await expect(
+    sheet.getByRole("link", { name: "View on monis.rent" }),
+  ).toBeVisible();
+
+  await sheet.getByRole("button", { name: /^Add for / }).click();
+
+  // Adding from the sheet closes both dialogs and puts the chair in the room.
+  await expect(sheet).toBeHidden();
+  await expect(grid).toBeHidden();
+  await expect(summary(page).getByText("Ergonomic Office Chair")).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
+test("a category filters the grid in place and search cuts across all of them", async ({
+  page,
+}) => {
+  const { problems } = await openStudio(page);
+
+  await page.getByRole("button", { name: "Add item" }).first().click();
+  const dialog = picker(page);
+
+  const cards = dialog.getByRole("button", { name: /^Add / });
+  const all = await cards.count();
+  expect(all).toBeGreaterThan(20);
+
+  // Picking a category narrows the same grid rather than scrolling to a section.
+  await dialog.getByRole("button", { name: /^Monitors/ }).click();
+  const monitors = await cards.count();
+  expect(monitors).toBeGreaterThan(0);
+  expect(monitors).toBeLessThan(all);
+
+  // The count on the rail is the promise, and the grid has to keep it.
+  const label = await dialog
+    .getByRole("button", { name: /^Monitors/ })
+    .innerText();
+  expect(monitors).toBe(Number(label.replace(/\D/g, "")));
+
+  // A product from another category is gone rather than merely scrolled past.
+  await expect(
+    dialog.getByRole("button", { name: /Add.*PlayStation/i }),
+  ).toHaveCount(0);
+
+  // Search reaches past the active category rather than within it.
+  await dialog.getByPlaceholder("Search products").fill("playstation");
+  await expect(
+    dialog.getByRole("button", { name: /playstation/i }).first(),
+  ).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
+test("changing the category puts the list back at the top", async ({
+  page,
+}) => {
+  const { problems } = await openStudio(page);
+
+  await page.getByRole("button", { name: "Add item" }).first().click();
+  const dialog = picker(page);
+  const list = catalogList(page);
+
+  const scrollTop = () => list.evaluate((element) => element.scrollTop);
+
+  await list.evaluate((element) => element.scrollTo({ top: 600 }));
+  await expect.poll(scrollTop).toBeGreaterThan(0);
+
+  // A different category is a different list, so it is shown from its start
+  // rather than from wherever the last one was left.
+  await dialog.getByRole("button", { name: /^Monitors/ }).click();
+  await expect.poll(scrollTop).toBe(0);
+
+  // And the same on the way back out to everything.
+  await list.evaluate((element) => element.scrollTo({ top: 300 }));
+  await expect.poll(scrollTop).toBeGreaterThan(0);
+
+  await dialog.getByRole("button", { name: "All" }).click();
+  await expect.poll(scrollTop).toBe(0);
 
   expect(problems).toEqual([]);
 });
@@ -270,8 +447,8 @@ test("the total is the weekly rate for the whole stay plus the deposit", async (
 }) => {
   const { problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
-  await add(page, "Chairs", "Ergonomic Office Chair");
+  await add(page, "Electrical Adjustable Desk");
+  await add(page, "Ergonomic Office Chair");
 
   const amount = async (name: string) =>
     money(await page.getByTestId(`summary-${name}`).innerText());
@@ -293,7 +470,7 @@ test("the total is the weekly rate for the whole stay plus the deposit", async (
 test("dragging a desk moves it to a new tile", async ({ page }) => {
   const { canvas, problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Electrical Adjustable Desk");
 
   const from = await findSprite(page, canvas);
   const box = await canvas.boundingBox();
@@ -322,8 +499,8 @@ test("dragging a desk moves it to a new tile", async ({ page }) => {
 test("dragging a desk carries what stands on it", async ({ page }) => {
   const { canvas, problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
-  await add(page, "Monitors", '27" 4K Multimedia Monitor');
+  await add(page, "Electrical Adjustable Desk");
+  await add(page, `27" 4K Multimedia Monitor`);
 
   // Adding selects the monitor, so its toolbar already marks where it stands.
   const monitorBefore = await toolbarAnchor(page);
@@ -366,7 +543,7 @@ test("dragging a desk carries what stands on it", async ({ page }) => {
 test("dragging the floor moves the camera, not the room", async ({ page }) => {
   const { canvas, problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Electrical Adjustable Desk");
 
   const desk = await findSprite(page, canvas);
   const box = await canvas.boundingBox();
@@ -457,7 +634,7 @@ test("a pinch zooms about the pointer while a scroll only pans", async ({
 }) => {
   const { canvas, problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Electrical Adjustable Desk");
 
   const desk = await findSprite(page, canvas);
   const box = await canvas.boundingBox();
@@ -494,8 +671,8 @@ test("deleting from the canvas toolbar takes the item off the bill", async ({
 }) => {
   const { problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
-  await add(page, "Chairs", "Ergonomic Office Chair");
+  await add(page, "Electrical Adjustable Desk");
+  await add(page, "Ergonomic Office Chair");
 
   // Adding selects the new item, so the chair is the one that goes.
   await deleteSelected(page).click();
@@ -511,8 +688,8 @@ test("deleting from the canvas toolbar takes the item off the bill", async ({
 test("deleting a desk takes everything standing on it", async ({ page }) => {
   const { canvas, problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
-  await add(page, "Monitors", '27" 4K Multimedia Monitor');
+  await add(page, "Electrical Adjustable Desk");
+  await add(page, `27" 4K Multimedia Monitor`);
   await expect(
     summary(page).getByText('27" 4K Multimedia Monitor'),
   ).toBeVisible();
@@ -533,7 +710,7 @@ test("the toolbar follows the selection and goes away on deselect", async ({
 }) => {
   const { canvas, problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Electrical Adjustable Desk");
   await expect(deleteSelected(page)).toBeVisible();
 
   const box = await canvas.boundingBox();
@@ -549,8 +726,8 @@ test("the toolbar follows the selection and goes away on deselect", async ({
 test("clearing empties the studio", async ({ page }) => {
   const { problems } = await openStudio(page);
 
-  await add(page, "Desks", "Electrical Adjustable Desk");
-  await add(page, "Monitors", '27" 4K Multimedia Monitor');
+  await add(page, "Electrical Adjustable Desk");
+  await add(page, `27" 4K Multimedia Monitor`);
 
   await expect(
     summary(page).getByText('27" 4K Multimedia Monitor'),
@@ -569,7 +746,7 @@ test("clearing empties the studio", async ({ page }) => {
 test("staging items never reach the bill", async ({ page }) => {
   const { problems } = await openStudio(page);
 
-  await add(page, "Staging", "Monstera");
+  await add(page, "Monstera");
 
   // It is in the room, so the empty state is gone, but it is not billed.
   await expect(page.getByText("Nothing in the room yet")).toBeHidden();

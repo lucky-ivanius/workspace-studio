@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { getAsset } from "../model/assets";
-import { assetIdFor } from "../model/catalog";
+import { assetIdFor, getProduct } from "../model/catalog";
 import { clampToRoom, type GridCell } from "../model/grid";
 import {
   assetOf,
@@ -23,10 +23,12 @@ export type CartEntry = {
 /**
  * Why an add did or did not reach the canvas. `needs-desk` and `no-space` are
  * both recoverable by putting the product in the cart instead, which is the
- * choice the UI offers.
+ * choice the UI offers. `carted` has already done that, because the product is
+ * one the room never draws.
  */
 export type AddResult =
   | { status: "placed"; instanceId: string }
+  | { status: "carted" }
   | { status: "needs-desk" }
   | { status: "no-space" }
   | { status: "unknown" };
@@ -41,6 +43,7 @@ export type StudioState = {
   /**
    * Tries to place a product in the room. `hostId` asks for a particular desk,
    * used by the menu on a selected desk; any desk with room will do otherwise.
+   * A cart-only product skips the room and goes to the cart.
    */
   addProduct: (productId: string, hostId?: string) => AddResult;
   addToCart: (productId: string) => void;
@@ -82,7 +85,13 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
 
   addProduct(productId, hostId) {
     const assetId = assetIdFor(productId);
-    if (!assetId) return { status: "unknown" };
+    if (!assetId) {
+      // No art means the product is cart-only, so there is nothing to find room
+      // for. An id that names no product at all is simply ignored.
+      if (!getProduct(productId)) return { status: "unknown" };
+      get().addToCart(productId);
+      return { status: "carted" };
+    }
 
     const asset = getAsset(assetId);
     const { items } = get();
@@ -116,7 +125,8 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   },
 
   addToCart(productId) {
-    if (!assetIdFor(productId)) return;
+    // Staging items are never billed, so the cart only takes rentals.
+    if (!getProduct(productId)) return;
 
     const { cart } = get();
     const existing = cart.find((entry) => entry.productId === productId);

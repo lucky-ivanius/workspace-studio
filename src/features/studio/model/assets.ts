@@ -165,6 +165,53 @@ const SPECS = [
     surface: "desk",
   }),
 
+  // Stand-ins. The Bali catalogue runs to a hundred-odd products and only a
+  // handful have bespoke art, so the rest borrow a block sized for the kind of
+  // thing their category holds. Every product can be placed in the room; the
+  // dialog shows the real photograph alongside, which is what names it.
+  isoAsset({
+    id: "generic-screen",
+    footprint: { w: 3, d: 1 },
+    heightCm: 45,
+    surface: "desk",
+  }),
+  isoAsset({
+    id: "generic-desk-small",
+    footprint: { w: 2, d: 1 },
+    heightCm: 8,
+    surface: "desk",
+  }),
+  isoAsset({
+    id: "generic-desk-medium",
+    footprint: { w: 2, d: 2 },
+    heightCm: 25,
+    surface: "desk",
+  }),
+  isoAsset({
+    id: "generic-desk-tall",
+    footprint: { w: 1, d: 1 },
+    heightCm: 35,
+    surface: "desk",
+  }),
+  isoAsset({
+    id: "generic-floor-small",
+    footprint: { w: 2, d: 2 },
+    heightCm: 60,
+    surface: "floor",
+  }),
+  isoAsset({
+    id: "generic-floor-large",
+    footprint: { w: 4, d: 4 },
+    heightCm: 110,
+    surface: "floor",
+  }),
+  isoAsset({
+    id: "generic-floor-wide",
+    footprint: { w: 6, d: 3 },
+    heightCm: 50,
+    surface: "floor",
+  }),
+
   isoAsset({
     id: "plant-monstera",
     footprint: { w: 2, d: 2 },
