@@ -1,8 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { getAsset } from "../model/assets";
-import { assetIdFor, getProduct } from "../model/catalog";
+import { artFor } from "../model/art";
+import { getProduct } from "../model/catalog";
 import { clampToRoom, type GridCell } from "../model/grid";
 import {
   assetOf,
@@ -84,8 +84,8 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   rentalWeeks: 4,
 
   addProduct(productId, hostId) {
-    const assetId = assetIdFor(productId);
-    if (!assetId) {
+    const asset = artFor(productId);
+    if (!asset) {
       // No art means the product is cart-only, so there is nothing to find room
       // for. An id that names no product at all is simply ignored.
       if (!getProduct(productId)) return { status: "unknown" };
@@ -93,7 +93,6 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
       return { status: "carted" };
     }
 
-    const asset = getAsset(assetId);
     const { items } = get();
     const placement = findPlacement(items, asset, hostId);
 

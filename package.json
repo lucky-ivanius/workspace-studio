@@ -3,14 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/index-art.mjs && next dev",
+    "build": "node scripts/index-art.mjs && next build",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "test:e2e": "playwright test",
+    "art:index": "node scripts/index-art.mjs",
     "catalog:sync": "node scripts/sync-catalog.mjs",
     "assets:placeholders": "tsx scripts/generate-placeholder-assets.mjs"
   },

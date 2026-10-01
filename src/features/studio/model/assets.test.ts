@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { ASSET_LIST, footprintCm, sourcePixelSize } from "./assets";
+import { ASSET_LIST } from "./art";
+import { footprintCm, sourcePixelSize } from "./assets";
 
 const PUBLIC_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -24,7 +25,7 @@ function pngSize(file: string) {
   return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
 }
 
-test("every registry asset has a PNG at exactly its declared size", () => {
+test("every drawing the room reaches has a PNG at exactly its declared size", () => {
   for (const spec of ASSET_LIST) {
     const file = resolve(PUBLIC_DIR, spec.src.replace(/^\//, ""));
     const expected = sourcePixelSize(spec);
@@ -33,8 +34,8 @@ test("every registry asset has a PNG at exactly its declared size", () => {
       pngSize(file),
       expected,
       `${spec.id}: file is the wrong size. Redraw it at ` +
-        `${expected.width}x${expected.height}, or change its footprint and ` +
-        `heightCm in model/assets.ts.`,
+        `${expected.width}x${expected.height}, or change the footprint and ` +
+        `heightCm its catalog.json entry declares.`,
     );
   }
 });
@@ -56,7 +57,9 @@ test("the declared size is derived from the footprint and height", () => {
 });
 
 test("a footprint maps to real centimetres", () => {
-  const desk = ASSET_LIST.find((spec) => spec.id === "desk-electric-standing");
+  const desk = ASSET_LIST.find(
+    (spec) => spec.id === "electrical-adjustable-desk",
+  );
   assert.ok(desk);
 
   // Eight tiles by four at 20 cm each.

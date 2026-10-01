@@ -1,10 +1,12 @@
 import { artFor } from "./art";
-import { getAsset } from "./assets";
 import catalog from "./catalog.json";
+import type { AssetSpec, StudioAttributes } from "./types";
 
 /**
- * The Bali catalogue, synced from the monis.rent Strapi API by
- * `pnpm catalog:sync`. Prices are USD per week straight from the storefront.
+ * The Bali catalogue. monis.rent seeds it through `pnpm catalog:sync`; the
+ * `studio` block on each entry is ours, written by hand, and is what decides
+ * whether the room draws the thing and how (see art.ts). Prices are USD per week
+ * straight from the storefront.
  *
  * Variants are not modelled: a product is one rentable thing.
  */
@@ -51,17 +53,21 @@ export type RentalProduct = {
   included: string[];
   tags: string[];
   productUrl: string;
+  /** Our own curation: whether the room draws it, and what as. */
+  studio?: StudioAttributes;
 };
 
 /**
- * Staging items that make a setup feel like a room. They are not rented, so
- * they carry no price and never reach checkout.
+ * Staging items that make a setup feel like a room. They live in catalog.json
+ * alongside the rentals, so adding a prop is the same edit as making a product
+ * placeable. They are not rented, so they carry no price and never reach
+ * checkout.
  */
 export type DecorItem = {
   id: string;
-  assetId: string;
   name: string;
   summary: string;
+  studio?: StudioAttributes;
 };
 
 export type CatalogCategory = {
@@ -73,25 +79,12 @@ export type CatalogCategory = {
 export const CATALOG_SOURCE = catalog.source;
 export const CATALOG_SYNCED_AT = catalog.syncedAt;
 
-export const PRODUCTS = catalog.products as RentalProduct[];
+export const PRODUCTS = catalog.products as unknown as RentalProduct[];
 
 /** Staging sits in its own category rather than one of monis.rent's. */
 export const STAGING_CATEGORY_ID = "staging";
 
-export const DECOR: DecorItem[] = [
-  {
-    id: "plant-monstera",
-    assetId: "plant-monstera",
-    name: "Monstera",
-    summary: "A big leafy plant for the corner. Sets the scene, not rented.",
-  },
-  {
-    id: "rug-woven",
-    assetId: "rug-woven",
-    name: "Woven Rug",
-    summary: "Warms up the floor under a desk. Sets the scene, not rented.",
-  },
-];
+export const DECOR = catalog.decor as unknown as DecorItem[];
 
 export const CATALOG_CATEGORIES: CatalogCategory[] = [
   ...(catalog.categories as CatalogCategory[]),
@@ -119,12 +112,6 @@ export function getDecor(id: string): DecorItem | undefined {
 
 export function getCategory(id: string): CatalogCategory | undefined {
   return CATEGORY_BY_ID.get(id);
-}
-
-export function assetIdFor(id: string): string | undefined {
-  const product = BY_ID.get(id);
-  if (product) return artFor(product);
-  return DECOR_BY_ID.get(id)?.assetId;
 }
 
 /** Name for any catalog id, rental or staging. Falls back to the id itself. */
@@ -172,8 +159,7 @@ function haystackOf(parts: Array<string | null>): string {
 }
 
 function itemOf(product: RentalProduct): CatalogItem {
-  const assetId = artFor(product);
-  const asset = assetId === undefined ? undefined : getAsset(assetId);
+  const asset = artFor(product.id);
 
   return {
     id: product.id,
@@ -196,8 +182,7 @@ function itemOf(product: RentalProduct): CatalogItem {
   };
 }
 
-function itemOfDecor(item: DecorItem): CatalogItem {
-  const asset = getAsset(item.assetId);
+function itemOfDecor(item: DecorItem, asset: AssetSpec): CatalogItem {
   return {
     id: item.id,
     name: item.name,
@@ -216,7 +201,12 @@ function itemOfDecor(item: DecorItem): CatalogItem {
 
 export const CATALOG_ITEMS: CatalogItem[] = [
   ...PRODUCTS.map(itemOf),
-  ...DECOR.map(itemOfDecor),
+  ...DECOR.flatMap((item) => {
+    const asset = artFor(item.id);
+    // A prop that is not placeable can neither be drawn nor rented, so there is
+    // nothing for the picker to offer.
+    return asset ? [itemOfDecor(item, asset)] : [];
+  }),
 ];
 
 /** The items a desk can host, for the add menu on a selected desk. */

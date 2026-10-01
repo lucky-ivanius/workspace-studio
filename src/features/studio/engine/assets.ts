@@ -1,5 +1,6 @@
 import { Assets, type Texture } from "pixi.js";
-import { ASSET_LIST, sourcePixelSize } from "../model/assets";
+import { ASSET_LIST, artProblems } from "../model/art";
+import { sourcePixelSize } from "../model/assets";
 
 export const STUDIO_BUNDLE = "studio";
 
@@ -27,6 +28,9 @@ export function loadStudioAssets(): Promise<void> {
     await Assets.loadBundle(STUDIO_BUNDLE);
 
     if (process.env.NODE_ENV !== "production") {
+      for (const problem of artProblems()) {
+        console.error(`catalog.json: ${problem}`);
+      }
       reportSizeMismatches();
     }
   })();
@@ -57,7 +61,8 @@ function reportSizeMismatches(): void {
     console.error(
       `Asset "${spec.id}" is ${actual.width}x${actual.height} but the registry ` +
         `declares ${expected.width}x${expected.height}. Redraw the PNG at the ` +
-        `declared size, or update its footprint and heightCm in model/assets.ts.`,
+        `declared size, or change the footprint and heightCm its catalog.json ` +
+        `entry declares.`,
     );
   }
 }

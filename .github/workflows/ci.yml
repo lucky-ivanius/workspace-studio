@@ -32,8 +32,9 @@ jobs:
 
       - run: pnpm typecheck
 
-      # Also checks that every PNG matches the size its registry entry declares,
-      # so art that drifts fails here rather than silently misaligning on canvas.
+      # Also checks that every PNG matches the size catalog.json implies, and
+      # that art-index.json still matches the folder, so art that drifts fails
+      # here rather than silently misaligning on canvas.
       - run: pnpm test
 
       - run: pnpm build
