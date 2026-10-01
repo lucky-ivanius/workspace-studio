@@ -142,6 +142,75 @@ test("moving a missing item is a no-op", () => {
   assert.equal(store().moveItem("nope", { x: 1, y: 1 }), false);
 });
 
+test("moving a desk carries whatever stands on it", () => {
+  const desk = place("desk-electric-standing");
+  const monitor = place("monitor-27-4k");
+  const lamp = place("lamp-smart-led");
+
+  const cellOf = (id: string) =>
+    store().items.find((item) => item.instanceId === id)?.cell;
+
+  const deskBefore = cellOf(desk);
+  const monitorBefore = cellOf(monitor);
+  const lampBefore = cellOf(lamp);
+  assert.ok(deskBefore && monitorBefore && lampBefore);
+
+  assert.equal(store().moveItem(desk, { x: 1, y: 2 }), true);
+
+  // The desk landed where it was asked to, so everything on it shifted by the
+  // same delta and kept its spot on the surface.
+  const shift = {
+    x: 1 - deskBefore.x,
+    y: 2 - deskBefore.y,
+  };
+  assert.deepEqual(cellOf(desk), { x: 1, y: 2 });
+  assert.deepEqual(cellOf(monitor), {
+    x: monitorBefore.x + shift.x,
+    y: monitorBefore.y + shift.y,
+  });
+  assert.deepEqual(cellOf(lamp), {
+    x: lampBefore.x + shift.x,
+    y: lampBefore.y + shift.y,
+  });
+});
+
+test("a desk's riders stay on it through a clamped move", () => {
+  const desk = place("desk-electric-standing");
+  const monitor = place("monitor-27-4k");
+
+  // Far outside the room, so the desk clamps and the monitor must follow the
+  // clamped cell rather than the one that was asked for.
+  assert.equal(store().moveItem(desk, { x: 99, y: 99 }), true);
+
+  const moved = store().items.find((item) => item.instanceId === desk);
+  const rider = store().items.find((item) => item.instanceId === monitor);
+  assert.ok(moved && rider);
+
+  assert.deepEqual(moved.cell, { x: 16, y: 20 });
+  assert.equal(rider.hostId, desk);
+  // The monitor sat at the desk's origin, so it rides at the clamped origin.
+  assert.deepEqual(rider.cell, { x: 16, y: 20 });
+});
+
+test("a refused desk move leaves its riders alone", () => {
+  const first = place("desk-electric-standing");
+  store().moveItem(first, { x: 0, y: 0 });
+
+  const second = place("desk-electric-standing");
+  const monitor = place("monitor-27-4k", second);
+
+  const before = store().items.find(
+    (item) => item.instanceId === monitor,
+  )?.cell;
+
+  // The second desk cannot land on the first, so nothing it carries may move.
+  assert.equal(store().moveItem(second, { x: 0, y: 0 }), false);
+  assert.deepEqual(
+    store().items.find((item) => item.instanceId === monitor)?.cell,
+    before,
+  );
+});
+
 test("removing a desk also removes whatever sits on it", () => {
   const desk = place("desk-electric-standing");
   place("monitor-27-4k");
