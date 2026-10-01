@@ -1,7 +1,8 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { ShoppingCartIcon } from "lucide-react";
 import { useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useStudioStore } from "../state/store";
 import { formatUsd, summarize } from "../state/summary";
@@ -10,22 +11,22 @@ const WEEK_OPTIONS = [1, 2, 4, 12];
 
 export function SummaryPanel() {
   const items = useStudioStore((state) => state.items);
+  const cart = useStudioStore((state) => state.cart);
   const rentalWeeks = useStudioStore((state) => state.rentalWeeks);
-  const selectedId = useStudioStore((state) => state.selectedId);
   const setRentalWeeks = useStudioStore((state) => state.setRentalWeeks);
-  const removeItem = useStudioStore((state) => state.removeItem);
+  const removeFromCart = useStudioStore((state) => state.removeFromCart);
   const clear = useStudioStore((state) => state.clear);
 
   const summary = useMemo(
-    () => summarize(items, rentalWeeks),
-    [items, rentalWeeks],
+    () => summarize(items, cart, rentalWeeks),
+    [items, cart, rentalWeeks],
   );
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b p-4">
         <h2 className="text-sm font-semibold">Your setup</h2>
-        {items.length > 0 && (
+        {summary.itemCount > 0 && (
           <Button variant="ghost" size="xs" onClick={clear}>
             Clear
           </Button>
@@ -57,13 +58,26 @@ export function SummaryPanel() {
                 key={line.product.id}
                 className="flex items-start justify-between gap-3"
               >
-                <div className="min-w-0">
+                <div className="flex min-w-0 flex-col items-start gap-1">
                   <p className="truncate text-sm font-medium">
                     {line.product.name}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {line.quantity} x {formatUsd(line.ratePerWeek)}/week
                   </p>
+                  {/* Cart-only copies have no sprite to select, so the only way
+                      to drop one is from here. */}
+                  {line.inCart > 0 && (
+                    <Badge
+                      variant="secondary"
+                      render={<button type="button" />}
+                      onClick={() => removeFromCart(line.product.id)}
+                      title="Remove one from the cart"
+                    >
+                      <ShoppingCartIcon data-icon="inline-start" />
+                      {line.inCart} in cart
+                    </Badge>
+                  )}
                 </div>
                 <span className="text-sm tabular-nums">
                   {formatUsd(line.weeklyTotal)}
@@ -95,17 +109,6 @@ export function SummaryPanel() {
         </div>
 
         <Button disabled={summary.itemCount === 0}>Rent this setup</Button>
-
-        {selectedId && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => removeItem(selectedId)}
-          >
-            <Trash2 data-icon="inline-start" />
-            Remove selected
-          </Button>
-        )}
       </div>
     </div>
   );

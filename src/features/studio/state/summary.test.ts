@@ -24,7 +24,7 @@ function place(productId: string): PlacedItem {
 }
 
 test("an empty studio costs nothing", () => {
-  const summary = summarize([], 4);
+  const summary = summarize([], [], 4);
 
   assert.deepEqual(summary.lines, []);
   assert.equal(summary.itemCount, 0);
@@ -39,6 +39,7 @@ test("duplicates collapse into one line with a quantity", () => {
       place("monitor-27-4k"),
       place("desk-electric-standing"),
     ],
+    [],
     2,
   );
 
@@ -51,11 +52,37 @@ test("duplicates collapse into one line with a quantity", () => {
   assert.ok(monitors);
   assert.equal(monitors.quantity, 2);
   assert.equal(monitors.weeklyTotal, monitors.ratePerWeek * 2);
+  assert.equal(monitors.inCart, 0);
+});
+
+test("a cart item is billed even though it is not in the room", () => {
+  const monitor = product("monitor-27-4k");
+  const summary = summarize([], [{ productId: monitor.id, quantity: 2 }], 4);
+
+  assert.equal(summary.lines.length, 1);
+  assert.equal(summary.itemCount, 2);
+  assert.equal(summary.lines[0].inCart, 2);
+  assert.equal(summary.perWeek, monitor.pricePerWeek * 2);
+});
+
+test("a product in the room and in the cart shares one line", () => {
+  const monitor = product("monitor-27-4k");
+  const summary = summarize(
+    [place(monitor.id)],
+    [{ productId: monitor.id, quantity: 2 }],
+    4,
+  );
+
+  assert.equal(summary.lines.length, 1);
+  assert.equal(summary.lines[0].quantity, 3);
+  assert.equal(summary.lines[0].inCart, 2);
+  assert.equal(summary.perWeek, monitor.pricePerWeek * 3);
 });
 
 test("staging items never reach checkout", () => {
   const summary = summarize(
     [place("desk-electric-standing"), place("plant-monstera")],
+    [],
     4,
   );
 
@@ -68,18 +95,18 @@ test("stays over a month use the long-stay rate", () => {
   assert.notEqual(desk.longStayPricePerWeek, desk.pricePerWeek);
 
   assert.equal(
-    summarize([place(desk.id)], 4).lines[0].ratePerWeek,
+    summarize([place(desk.id)], [], 4).lines[0].ratePerWeek,
     desk.pricePerWeek,
   );
   assert.equal(
-    summarize([place(desk.id)], 12).lines[0].ratePerWeek,
+    summarize([place(desk.id)], [], 12).lines[0].ratePerWeek,
     desk.longStayPricePerWeek,
   );
 });
 
 test("the total is the weekly rate for the whole stay plus deposits", () => {
   const desk = product("desk-electric-standing");
-  const summary = summarize([place(desk.id), place(desk.id)], 3);
+  const summary = summarize([place(desk.id), place(desk.id)], [], 3);
 
   const expectedPerWeek = desk.pricePerWeek * 2;
   const expectedDeposit = (desk.securityDeposit ?? 0) * 2;
@@ -87,6 +114,13 @@ test("the total is the weekly rate for the whole stay plus deposits", () => {
   assert.equal(summary.perWeek, expectedPerWeek);
   assert.equal(summary.deposit, expectedDeposit);
   assert.equal(summary.total, expectedPerWeek * 3 + expectedDeposit);
+});
+
+test("a cart item carries its deposit too", () => {
+  const desk = product("desk-electric-standing");
+  const summary = summarize([], [{ productId: desk.id, quantity: 2 }], 1);
+
+  assert.equal(summary.deposit, (desk.securityDeposit ?? 0) * 2);
 });
 
 test("whole dollars lose the trailing zeros, cents keep them", () => {

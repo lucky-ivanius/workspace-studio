@@ -1,11 +1,14 @@
 import { getProduct, type RentalProduct, weeklyRate } from "../model/catalog";
 import type { PlacedItem } from "../model/types";
+import type { CartEntry } from "./store";
 
 export type SummaryLine = {
   product: RentalProduct;
   quantity: number;
   ratePerWeek: number;
   weeklyTotal: number;
+  /** How many of the quantity are in the cart rather than in the room. */
+  inCart: number;
 };
 
 export type Summary = {
@@ -17,23 +20,42 @@ export type Summary = {
   weeks: number;
 };
 
-export function summarize(items: PlacedItem[], weeks: number): Summary {
-  const counts = new Map<string, number>();
-  for (const item of items) {
-    counts.set(item.productId, (counts.get(item.productId) ?? 0) + 1);
+/**
+ * The bill covers the room and the cart alike: an item that could not fit is
+ * still being rented, it just has nowhere to stand yet.
+ */
+export function summarize(
+  items: PlacedItem[],
+  cart: CartEntry[],
+  weeks: number,
+): Summary {
+  const counts = new Map<string, { total: number; inCart: number }>();
+
+  const tally = (productId: string, quantity: number, inCart: number) => {
+    const current = counts.get(productId) ?? { total: 0, inCart: 0 };
+    counts.set(productId, {
+      total: current.total + quantity,
+      inCart: current.inCart + inCart,
+    });
+  };
+
+  for (const item of items) tally(item.productId, 1, 0);
+  for (const entry of cart) {
+    tally(entry.productId, entry.quantity, entry.quantity);
   }
 
   const lines: SummaryLine[] = [];
-  for (const [productId, quantity] of counts) {
+  for (const [productId, count] of counts) {
     const product = getProduct(productId);
     // Decor is staging only and never reaches checkout.
     if (!product) continue;
     const ratePerWeek = weeklyRate(product, weeks);
     lines.push({
       product,
-      quantity,
+      quantity: count.total,
       ratePerWeek,
-      weeklyTotal: ratePerWeek * quantity,
+      weeklyTotal: ratePerWeek * count.total,
+      inCart: count.inCart,
     });
   }
 

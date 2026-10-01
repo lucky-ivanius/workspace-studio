@@ -29,6 +29,21 @@ export type CameraState = {
   canZoomOut: boolean;
 };
 
+/**
+ * Where to pin the floating toolbar for the selected item, in CSS pixels
+ * relative to the canvas. Recomputed whenever the item or the camera moves.
+ */
+export type SelectionAnchor = {
+  instanceId: string;
+  /** Top-right corner of the item's art. */
+  x: number;
+  y: number;
+  /** Desks get the extra "add to this desk" menu. */
+  isDesk: boolean;
+  /** True mid-drag, so the toolbar can step out of the way. */
+  dragging: boolean;
+};
+
 export type SceneCallbacks = {
   onSelect: (instanceId: string | null) => void;
   /**
@@ -38,6 +53,8 @@ export type SceneCallbacks = {
   onMove: (instanceId: string, cell: GridCell) => void;
   /** Fires when the zoom changes, never on a pan. */
   onCameraChange: (camera: CameraState) => void;
+  /** Fires whenever the selected item's screen position changes. */
+  onSelectionChange: (anchor: SelectionAnchor | null) => void;
 };
 
 const BACKGROUND = 0xf4f1ea;
@@ -81,6 +98,41 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
+function sameAnchor(
+  a: SelectionAnchor | null,
+  b: SelectionAnchor | null,
+): boolean {
+  if (!a || !b) return a === b;
+  return (
+    a.instanceId === b.instanceId &&
+    a.x === b.x &&
+    a.y === b.y &&
+    a.isDesk === b.isDesk &&
+    a.dragging === b.dragging
+  );
+}
+
+/**
+ * Top-right of the sprite's art, in CSS pixels relative to the canvas.
+ * `autoDensity` keeps stage space in CSS pixels, so these drop straight into an
+ * absolutely positioned style over the canvas.
+ */
+function anchorOf(
+  sprite: Sprite,
+  instanceId: string,
+  item: PlacedItem,
+  draggingId: string | undefined,
+): SelectionAnchor {
+  const bounds = sprite.getBounds();
+  return {
+    instanceId,
+    x: Math.round(bounds.maxX),
+    y: Math.round(bounds.minY),
+    isDesk: assetOf(item).deskSurface !== undefined,
+    dragging: draggingId === instanceId,
+  };
+}
+
 export class StudioScene {
   private app = new Application();
   private world = new Container();
@@ -97,6 +149,8 @@ export class StudioScene {
   private followFit = true;
   private items: PlacedItem[] = [];
   private selectedId: string | null = null;
+  /** Last anchor handed to React, so identical ones are not re-sent. */
+  private anchor: SelectionAnchor | null = null;
   private resizeObserver: ResizeObserver | undefined;
   private detachInput: (() => void) | undefined;
   private destroyed = false;
@@ -173,6 +227,7 @@ export class StudioScene {
     }
 
     this.drawSelection();
+    this.reportSelection();
   }
 
   private createSprite(item: PlacedItem): Sprite {
@@ -250,6 +305,31 @@ export class StudioScene {
     }
   }
 
+  /**
+   * Tells React where to pin the selected item's toolbar. The sprite's own
+   * bounds are used rather than the grid, so the anchor tracks the art the user
+   * actually sees, including a tall monitor that overhangs its footprint.
+   */
+  private reportSelection(): void {
+    const sprite = this.selectedId
+      ? this.sprites.get(this.selectedId)
+      : undefined;
+
+    const item = this.items.find(
+      (candidate) => candidate.instanceId === this.selectedId,
+    );
+
+    const next: SelectionAnchor | null =
+      sprite && item && this.selectedId
+        ? anchorOf(sprite, this.selectedId, item, this.drag?.instanceId)
+        : null;
+
+    // Panning calls this on every pointer frame; most frames say nothing new.
+    if (sameAnchor(this.anchor, next)) return;
+    this.anchor = next;
+    this.callbacks.onSelectionChange(next);
+  }
+
   private bindPointer(): void {
     const stage = this.app.stage;
     stage.eventMode = "static";
@@ -296,6 +376,7 @@ export class StudioScene {
       sprite.cursor = "grabbing";
       sprite.alpha = 0.75;
     }
+    this.reportSelection();
   }
 
   private updateDrag(event: FederatedPointerEvent): void {
@@ -317,6 +398,7 @@ export class StudioScene {
       sprite.alpha = 1;
     }
     this.drag = undefined;
+    this.reportSelection();
   }
 
   private beginPan(event: FederatedPointerEvent): void {
@@ -535,6 +617,10 @@ export class StudioScene {
       width / 2 - this.focus.x * scale,
       height / 2 - this.focus.y * scale,
     );
+
+    // The one funnel every camera change passes through, so the toolbar stays
+    // pinned to its item through pans, zooms and resizes alike.
+    this.reportSelection();
   }
 }
 
