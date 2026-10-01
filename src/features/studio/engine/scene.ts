@@ -10,16 +10,24 @@ import { ASSET_PIXEL_RATIO } from "../model/assets";
 import {
   anchorToScreen,
   type GridCell,
-  ROOM_COLS,
-  ROOM_ROWS,
   roomBounds,
+  roomCenter,
+  roomGridLines,
   roomOutline,
+  type ScreenPoint,
   screenToTile,
   tileDiamond,
 } from "../model/grid";
 import { assetOf, elevationOf, zIndexOf } from "../model/placement";
 import type { PlacedItem } from "../model/types";
 import { loadStudioAssets } from "./assets";
+
+/** Everything the zoom control needs to render itself. */
+export type CameraState = {
+  zoom: number;
+  canZoomIn: boolean;
+  canZoomOut: boolean;
+};
 
 export type SceneCallbacks = {
   onSelect: (instanceId: string | null) => void;
@@ -28,13 +36,31 @@ export type SceneCallbacks = {
    * simply leaves the item where it was.
    */
   onMove: (instanceId: string, cell: GridCell) => void;
+  /** Fires when the zoom changes, never on a pan. */
+  onCameraChange: (camera: CameraState) => void;
 };
 
 const BACKGROUND = 0xf4f1ea;
 const FLOOR_FILL = 0xe6e0d4;
 const FLOOR_LINE = 0xcfc6b4;
+const FLOOR_EDGE = 0xb9ae98;
 const SELECTION = 0x4f46e5;
-const VIEWPORT_PADDING = 96;
+
+/** Slack left around the room when fitting it to the view. */
+const VIEWPORT_PADDING = 64;
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 4;
+/** Multiplier for one step of the zoom in / zoom out commands. */
+const ZOOM_STEP = 1.25;
+/**
+ * Zoom per pixel of wheel delta. A mouse notch is ~100px, so one notch is about
+ * 20%, while a trackpad pinch arrives in small deltas and stays smooth.
+ */
+const ZOOM_PER_PIXEL = 0.002;
+/** Momentum can deliver huge deltas; past this a single event would teleport. */
+const MAX_WHEEL_DELTA = 180;
+/** A press that travels less than this is a click on the floor, not a pan. */
+const PAN_THRESHOLD = 4;
 
 type DragState = {
   instanceId: string;
@@ -42,6 +68,18 @@ type DragState = {
   grab: GridCell;
   elevation: number;
 };
+
+type PanState = {
+  /** Pointer position when the press started, in screen px. */
+  from: ScreenPoint;
+  /** Camera focus when the press started, so the pan never drifts. */
+  focus: ScreenPoint;
+  moved: boolean;
+};
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
 export class StudioScene {
   private app = new Application();
@@ -52,9 +90,15 @@ export class StudioScene {
   private itemLayer = new Container({ sortableChildren: true });
   private sprites = new Map<string, Sprite>();
   private drag: DragState | undefined;
+  private pan: PanState | undefined;
+  /** World point held at the middle of the view. Panning moves it. */
+  private focus: ScreenPoint = roomCenter();
+  /** While true, a resize re-fits the zoom instead of preserving it. */
+  private followFit = true;
   private items: PlacedItem[] = [];
   private selectedId: string | null = null;
   private resizeObserver: ResizeObserver | undefined;
+  private detachInput: (() => void) | undefined;
   private destroyed = false;
 
   constructor(private readonly callbacks: SceneCallbacks) {}
@@ -90,15 +134,17 @@ export class StudioScene {
 
     this.drawFloor();
     this.bindPointer();
+    this.detachInput = this.bindDeviceInput();
 
-    this.resizeObserver = new ResizeObserver(() => this.centreCamera());
+    this.resizeObserver = new ResizeObserver(() => this.updateCamera());
     this.resizeObserver.observe(host);
-    this.centreCamera();
+    this.updateCamera();
   }
 
   destroy(): void {
     this.destroyed = true;
     this.resizeObserver?.disconnect();
+    this.detachInput?.();
     this.sprites.clear();
     if (this.app.renderer) {
       this.app.destroy({ removeView: true }, { children: true });
@@ -165,13 +211,12 @@ export class StudioScene {
     this.floor.clear();
     this.floor.poly(roomOutline()).fill(FLOOR_FILL);
 
-    for (let x = 0; x < ROOM_COLS; x++) {
-      for (let y = 0; y < ROOM_ROWS; y++) {
-        this.floor
-          .poly(tileDiamond(x, y))
-          .stroke({ width: 1, color: FLOOR_LINE, alpha: 0.9 });
-      }
+    for (const [from, to] of roomGridLines()) {
+      this.floor.moveTo(from.x, from.y).lineTo(to.x, to.y);
     }
+    this.floor.stroke({ width: 1, color: FLOOR_LINE, alpha: 0.8 });
+
+    this.floor.poly(roomOutline()).stroke({ width: 2, color: FLOOR_EDGE });
   }
 
   /**
@@ -209,17 +254,25 @@ export class StudioScene {
     const stage = this.app.stage;
     stage.eventMode = "static";
     stage.hitArea = this.app.screen;
+    // Items carry "grab", so the floor gets a cursor of its own.
+    stage.cursor = "move";
 
     stage.on("pointerdown", (event: FederatedPointerEvent) => {
       // Reached only when the press misses every sprite.
-      if (event.target === stage) this.callbacks.onSelect(null);
+      if (event.target === stage) this.beginPan(event);
     });
 
-    stage.on("globalpointermove", (event: FederatedPointerEvent) =>
-      this.updateDrag(event),
-    );
-    stage.on("pointerup", () => this.endDrag());
-    stage.on("pointerupoutside", () => this.endDrag());
+    stage.on("globalpointermove", (event: FederatedPointerEvent) => {
+      this.updatePan(event);
+      this.updateDrag(event);
+    });
+    stage.on("pointerup", () => this.release());
+    stage.on("pointerupoutside", () => this.release());
+  }
+
+  private release(): void {
+    this.endPan();
+    this.endDrag();
   }
 
   private beginDrag(instanceId: string, event: FederatedPointerEvent): void {
@@ -266,6 +319,43 @@ export class StudioScene {
     this.drag = undefined;
   }
 
+  private beginPan(event: FederatedPointerEvent): void {
+    this.pan = {
+      from: { x: event.global.x, y: event.global.y },
+      focus: { ...this.focus },
+      moved: false,
+    };
+  }
+
+  /**
+   * Moves the floor with the pointer one-for-one. The focus is recomputed from
+   * the press anchor each frame, so hitting a clamp and coming back lands the
+   * camera exactly where the pointer says it should be.
+   */
+  private updatePan(event: FederatedPointerEvent): void {
+    if (!this.pan) return;
+
+    const dx = event.global.x - this.pan.from.x;
+    const dy = event.global.y - this.pan.from.y;
+    if (!this.pan.moved && Math.hypot(dx, dy) < PAN_THRESHOLD) return;
+
+    this.pan.moved = true;
+    const scale = this.world.scale.x;
+    this.focus = {
+      x: this.pan.focus.x - dx / scale,
+      y: this.pan.focus.y - dy / scale,
+    };
+    this.applyFocus();
+  }
+
+  private endPan(): void {
+    if (!this.pan) return;
+
+    // A press that went nowhere was a click on empty floor.
+    if (!this.pan.moved) this.callbacks.onSelect(null);
+    this.pan = undefined;
+  }
+
   /** Converts a pointer event to a grid cell, undoing the item's elevation. */
   private cellUnderPointer(
     event: FederatedPointerEvent,
@@ -276,21 +366,214 @@ export class StudioScene {
     return { x: Math.round(tile.x), y: Math.round(tile.y) };
   }
 
-  private centreCamera(): void {
+  /**
+   * Wheel and keyboard, on the DOM rather than through Pixi. Pixi registers its
+   * own wheel listener as passive, so a federated handler could not call
+   * preventDefault, and the browser would zoom the whole page on a pinch.
+   */
+  private bindDeviceInput(): () => void {
+    const canvas = this.app.canvas;
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+
+      const deltaX = normalizeWheel(
+        event.deltaX,
+        event.deltaMode,
+        this.app.screen.width,
+      );
+      const deltaY = normalizeWheel(
+        event.deltaY,
+        event.deltaMode,
+        this.app.screen.height,
+      );
+
+      // A trackpad pinch arrives as a wheel event with ctrlKey set, which is
+      // also the convention for modifier-zoom with a mouse.
+      if (event.ctrlKey || event.metaKey) {
+        const rect = canvas.getBoundingClientRect();
+        this.zoomBy(Math.exp(-deltaY * ZOOM_PER_PIXEL), {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top,
+        });
+        return;
+      }
+
+      // Two-finger scroll pans, the same as dragging the floor.
+      const scale = this.world.scale.x;
+      this.focus = {
+        x: this.focus.x + deltaX / scale,
+        y: this.focus.y + deltaY / scale,
+      };
+      this.applyFocus();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return;
+
+      const command = zoomShortcut(event);
+      if (!command) return;
+
+      event.preventDefault();
+      command(this);
+    };
+
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      canvas.removeEventListener("wheel", onWheel);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }
+
+  zoomIn(): void {
+    this.zoomBy(ZOOM_STEP);
+  }
+
+  zoomOut(): void {
+    this.zoomBy(1 / ZOOM_STEP);
+  }
+
+  /** Absolute zoom, held at the middle of the view. 1 is one world px per screen px. */
+  zoomTo(zoom: number): void {
+    this.setZoom(zoom, this.viewCenter());
+  }
+
+  zoomToFit(): void {
     if (this.destroyed || !this.app.renderer) return;
 
+    this.focus = roomCenter();
+    this.world.scale.set(this.fitZoom());
+    this.followFit = true;
+    this.applyFocus();
+    this.callbacks.onCameraChange(this.cameraState());
+  }
+
+  private zoomBy(factor: number, at?: ScreenPoint): void {
+    this.setZoom(this.world.scale.x * factor, at ?? this.viewCenter());
+  }
+
+  /**
+   * Changes the zoom while holding the world point under `at` still, which is
+   * what makes pinching and wheel-zooming feel anchored to the pointer.
+   */
+  private setZoom(zoom: number, at: ScreenPoint): void {
+    if (this.destroyed || !this.app.renderer) return;
+
+    const from = this.world.scale.x;
+    const to = clamp(zoom, MIN_ZOOM, MAX_ZOOM);
+    if (to === from) return;
+
+    const center = this.viewCenter();
+    this.focus = {
+      x: this.focus.x + (at.x - center.x) * (1 / from - 1 / to),
+      y: this.focus.y + (at.y - center.y) * (1 / from - 1 / to),
+    };
+
+    this.followFit = false;
+    this.world.scale.set(to);
+    this.applyFocus();
+    this.callbacks.onCameraChange(this.cameraState());
+  }
+
+  private cameraState(): CameraState {
+    const zoom = this.world.scale.x;
+    return {
+      zoom,
+      canZoomIn: zoom < MAX_ZOOM,
+      canZoomOut: zoom > MIN_ZOOM,
+    };
+  }
+
+  private viewCenter(): ScreenPoint {
+    return { x: this.app.screen.width / 2, y: this.app.screen.height / 2 };
+  }
+
+  /** Zoom that shows the whole room, with a little slack around it. */
+  private fitZoom(): number {
     const { width, height } = this.app.screen;
     const bounds = roomBounds();
-    const scale = Math.min(
-      (width - VIEWPORT_PADDING) / bounds.width,
-      (height - VIEWPORT_PADDING) / bounds.height,
-      1,
-    );
-
-    this.world.scale.set(scale);
-    this.world.position.set(
-      width / 2 - (bounds.left + bounds.width / 2) * scale,
-      height / 2 - (bounds.top + bounds.height / 2) * scale,
+    return clamp(
+      Math.min(
+        (width - VIEWPORT_PADDING) / bounds.width,
+        (height - VIEWPORT_PADDING) / bounds.height,
+      ),
+      MIN_ZOOM,
+      MAX_ZOOM,
     );
   }
+
+  /**
+   * Re-applies the camera after a resize. The zoom is re-fitted only while the
+   * user has not set one of their own; a pan or zoom always survives.
+   */
+  private updateCamera(): void {
+    if (this.destroyed || !this.app.renderer) return;
+
+    if (this.followFit) this.world.scale.set(this.fitZoom());
+    this.applyFocus();
+    this.callbacks.onCameraChange(this.cameraState());
+  }
+
+  /**
+   * Points the camera at `focus`, first pulling it back onto the floor. Keeping
+   * the focus inside the room means any corner can be brought into view and the
+   * room can never be dragged off screen.
+   */
+  private applyFocus(): void {
+    const { width, height } = this.app.screen;
+    const bounds = roomBounds();
+    const scale = this.world.scale.x;
+
+    this.focus = {
+      x: clamp(this.focus.x, bounds.left, bounds.right),
+      y: clamp(this.focus.y, bounds.top, bounds.bottom),
+    };
+
+    this.world.position.set(
+      width / 2 - this.focus.x * scale,
+      height / 2 - this.focus.y * scale,
+    );
+  }
+}
+
+/** Wheel deltas arrive in pixels, lines or pages depending on the device. */
+function normalizeWheel(delta: number, mode: number, pageSize: number): number {
+  const pixels =
+    mode === WheelEvent.DOM_DELTA_LINE
+      ? delta * 16
+      : mode === WheelEvent.DOM_DELTA_PAGE
+        ? delta * pageSize
+        : delta;
+
+  return clamp(pixels, -MAX_WHEEL_DELTA, MAX_WHEEL_DELTA);
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
+  );
+}
+
+/**
+ * The shortcuts the zoom menu advertises. Digit codes rather than `key`, because
+ * shifted number keys produce punctuation that varies by layout.
+ */
+function zoomShortcut(
+  event: KeyboardEvent,
+): ((scene: StudioScene) => void) | undefined {
+  if (event.altKey || event.ctrlKey || event.metaKey) return undefined;
+
+  if (event.shiftKey) {
+    if (event.code === "Digit0") return (scene) => scene.zoomTo(1);
+    if (event.code === "Digit1") return (scene) => scene.zoomToFit();
+    return undefined;
+  }
+
+  if (event.key === "+" || event.key === "=") return (scene) => scene.zoomIn();
+  if (event.key === "-") return (scene) => scene.zoomOut();
+  return undefined;
 }

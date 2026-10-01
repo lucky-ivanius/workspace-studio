@@ -6,8 +6,9 @@ against. For the brief, see [REQUIREMENTS.md](./REQUIREMENTS.md).
 ## What runs today
 
 Open the app and you can add a desk, add a chair and accessories, drag anything
-to a new tile, and watch the checkout summary update with live monis.rent
-prices. That loop exists to prove the foundation, not to be the final product.
+to a new tile, pan and zoom around the room, and watch the checkout summary
+update with live monis.rent prices. That loop exists to prove the foundation, not
+to be the final product.
 
 ## Stack
 
@@ -37,7 +38,7 @@ src/features/studio/
     placement.ts  Placement rules, surfaces, draw order
   state/        zustand store and the checkout summary selector
   engine/       Pixi: asset loading and the scene
-  components/   React: canvas mount, catalog panel, summary panel
+  components/   React: canvas mount, catalog panel, summary panel, zoom menu
 
 e2e/            Playwright browser tests
 scripts/
@@ -51,21 +52,64 @@ can be tested with plain Node.
 
 ## The grid
 
-The room is a 10x10 isometric grid of 128x64 px tiles. One tile is **40 cm** of
-floor, so a 4x2 desk is 160x80 cm — the size monis.rent actually rents.
+The room is a 24x24 isometric grid of 64x32 px tiles. One tile is **20 cm** of
+floor, so an 8x4 desk is 160x80 cm — the size monis.rent actually rents, and the
+room is 4.8 m square.
+
+Tiles are deliberately smaller than the objects on them. A desk surface is 32
+slots, so a monitor (3x1), a lamp (1x1) and a keyboard (2x1) use under a fifth of
+it and can be arranged freely while every position still snaps to a grid line.
 
 Tile `(0, 0)` sits at world origin. Moving one tile along `x` goes right and
 down; one tile along `y` goes left and down.
 
 ```
-screen.x = (x - y) * 64
-screen.y = (x + y) * 32
+screen.x = (x - y) * 32
+screen.y = (x + y) * 16
 ```
 
 Items are positioned by the **centre of their footprint**, lifted by their
 elevation. Depth is the footprint's front corner, `x + w + y + d`, so larger
 means nearer the camera. Two items on the same `x + y` diagonal are the same
 distance away and their order is arbitrary.
+
+`gridCorner(x, y)` gives the point where tiles meet rather than a tile centre,
+which is what the floor outline and the ruled grid lines are built from.
+
+### The camera
+
+The camera is one world point — the `focus` the view is centred on — plus a zoom.
+Both live in the scene, not the store, because they are view state rather than
+part of the setup being rented.
+
+Device input, all of which can be mixed freely:
+
+| Gesture | Effect |
+| --- | --- |
+| Drag empty space | Pan |
+| Two-finger scroll, mouse wheel | Pan |
+| Trackpad pinch, `ctrl`/`cmd` + wheel | Zoom about the pointer |
+| `+` / `-` | Zoom in / out one step (1.25x) |
+| `⇧0` | Zoom to 100% |
+| `⇧1` | Zoom to fit |
+
+Wheel input is handled with a native listener rather than a Pixi federated one.
+Pixi registers its own `wheel` listener as `passive`, so a federated handler
+cannot call `preventDefault`, and a pinch would zoom the whole browser page.
+
+A press that travels under 4 px is treated as a click on empty floor and clears
+the selection instead of panning.
+
+Zoom runs from 20% to 400%, where 100% is one world pixel per screen pixel.
+Zooming holds the world point under the pointer still, which is what makes
+pinching feel anchored. The scene reports zoom changes through `onCameraChange`
+so the zoom menu can render the current level and disable its limits; pans do not
+fire it, because a React render per pointer move would be wasteful.
+
+The focus is clamped to the room's bounds. That means any corner of the floor can
+be brought to the middle of the view, and the floor can never be pushed off
+screen. A resize re-fits the zoom only while the user has not chosen one of their
+own, so a pan or a deliberate zoom always survives a window change.
 
 ### Draw order
 
@@ -81,6 +125,13 @@ Desks declare `surfaceHeightCm`; anything placed on one is raised by that
 height and constrained to the desk's tiles. Removing a desk removes everything
 on it.
 
+### Where a new item lands
+
+`findPlacement` takes the first free slot, searching **outward from the middle of
+the room** rather than in reading order. In a room this size, reading order would
+strand the first desk in a back corner. Desk-mounted items search their host
+desk in reading order, and chairs try the front edge of a desk first.
+
 ## The asset contract
 
 This is the important part. Every PNG has exactly one correct size, derived
@@ -88,15 +139,15 @@ from its grid footprint, so art and placement cannot drift apart.
 
 A registry entry declares two things about shape:
 
-- `footprint: { w, d }` — tiles occupied, at 40 cm per tile
+- `footprint: { w, d }` — tiles occupied, at 20 cm per tile
 - `heightCm` — how tall the real object is
 
 Everything else is computed:
 
 ```
 span        = w + d
-designWidth  = span * 64
-baseHeight   = span * 32           (the footprint rhombus)
+designWidth  = span * 32
+baseHeight   = span * 16           (the footprint rhombus)
 standHeight  = round(heightCm * 1.6)
 designHeight = baseHeight + standHeight
 
@@ -115,12 +166,12 @@ anchor = (designWidth / 2, designHeight - baseHeight / 2)
    the canvas top.
 4. Leave the rest transparent.
 
-Worked example, `monitor-27-4k` (footprint 2x1, 50 cm tall):
+Worked example, `monitor-27-4k` (footprint 3x1, 50 cm tall):
 
 ```
-span = 3  ->  design 192 x 176  ->  file 384 x 352
-footprint rhombus occupies the bottom 192 px of the file
-anchor at design (96, 128)
+span = 4  ->  design 128 x 144  ->  file 256 x 288
+footprint rhombus occupies the bottom 128 px of the file
+anchor at design (64, 112)
 ```
 
 The placeholder generator draws this rhombus with a white anchor tick, so you
@@ -152,16 +203,19 @@ size and `pnpm test` tells you which file and what size it should be.
 **`pnpm test:e2e`** runs Playwright against Chromium. It builds the app and
 serves it, so the run always reflects current code. These tests cover the wiring
 the unit tests cannot: that WebGL actually boots, that catalog clicks place items
-on the canvas, that a pointer drag moves an item to a new tile, and that the
-checkout arithmetic shown on screen adds up.
+on the canvas, that a pointer drag moves an item to a new tile, that dragging
+empty space pans the camera instead, that the zoom menu, shortcuts, pinch and
+scroll all drive the camera, and that the checkout arithmetic shown on screen
+adds up.
 
 Every e2e test asserts no console errors or uncaught exceptions occurred, so a
 failed texture load or a Pixi error fails the suite rather than going unnoticed.
 
-The drag test does not hardcode screen positions. It scans the canvas for the
-`grab` cursor Pixi sets on hover to find a sprite, drags it, then checks the
-cursor is `grab` at the drop point and no longer `grab` where it started. That
-exercises real hit-testing and stays correct if the camera changes.
+None of the camera tests hardcode screen positions. They scan the canvas for the
+`grab` cursor Pixi sets over an item to find a sprite, then assert on the cursor
+where that sprite should have ended up. That exercises real hit-testing and stays
+correct if the camera changes. The floor carries a `move` cursor rather than
+`grab`, which is what lets the scan tell items apart from empty space.
 
 ### CI
 
@@ -227,6 +281,10 @@ Useful flags: `pnpm test:e2e --ui` for the interactive runner,
 
 ## Open items
 
+- **Touch pinch.** Trackpad pinch works because the browser reports it as
+  `ctrl` + wheel. A two-finger pinch on a touchscreen arrives as touch events
+  instead and is not handled yet. Mobile has no catalog panel either, so the
+  small-screen experience needs its own pass.
 - **A second chair.** The must-haves need two chair options and monis.rent
   currently lists one. The `chair-task-compact` asset exists and the catalog
   takes any number of chairs; it needs a real product to point at.
