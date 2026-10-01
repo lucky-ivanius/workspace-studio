@@ -8,8 +8,8 @@ export function StudioShell() {
       <header className="flex shrink-0 items-baseline gap-3 border-b px-5 py-3">
         <h1 className="text-base font-semibold">Design your workspace</h1>
         <p className="hidden text-sm text-muted-foreground sm:block">
-          Add a desk, drag things where you want them, then rent the whole
-          setup.
+          Add a desk, drag things where you want them, scroll or drag to look
+          around, then rent the whole setup.
         </p>
       </header>
 
@@ -18,7 +18,9 @@ export function StudioShell() {
           <CatalogPanel />
         </aside>
 
-        <main className="min-h-0">
+        {/* min-w-0: the canvas has an intrinsic width, and without this the grid
+            track refuses to shrink and pushes the summary off screen. */}
+        <main className="min-h-0 min-w-0">
           <StudioCanvasLoader />
         </main>
 

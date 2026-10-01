@@ -10,11 +10,14 @@ export const ASSET_PIXEL_RATIO = 2;
 export const ASSET_DIR = "/assets/studio";
 
 /**
- * One grid tile is 40 cm of floor, which makes a 4x2 desk 160x80 cm — the size
+ * One grid tile is 20 cm of floor, which makes an 8x4 desk 160x80 cm — the size
  * monis.rent actually rents. Heights are declared in cm and converted with the
  * same scale as the floor axes, so objects stay in proportion to each other.
+ *
+ * Tiles this small let a monitor, a lamp and a keyboard share a desk with room
+ * left over, while every position still snaps to a grid line.
  */
-export const CM_PER_TILE = 40;
+export const CM_PER_TILE = 20;
 export const PX_PER_CM = TILE_WIDTH / 2 / CM_PER_TILE;
 
 type IsoAssetInput = {
@@ -75,56 +78,58 @@ const SPECS = [
   // Desks: 160x80, 120x80 and 200x80 cm.
   isoAsset({
     id: "desk-electric-standing",
-    footprint: { w: 4, d: 2 },
+    footprint: { w: 8, d: 4 },
     heightCm: 75,
     surface: "floor",
     surfaceHeightCm: 75,
   }),
   isoAsset({
     id: "desk-mechanical-wooden",
-    footprint: { w: 3, d: 2 },
+    footprint: { w: 6, d: 4 },
     heightCm: 72,
     surface: "floor",
     surfaceHeightCm: 72,
   }),
   isoAsset({
     id: "desk-dual-motor",
-    footprint: { w: 5, d: 2 },
+    footprint: { w: 10, d: 4 },
     heightCm: 75,
     surface: "floor",
     surfaceHeightCm: 75,
   }),
 
+  // Chairs claim the floor their casters sweep: 80x80 and 60x60 cm.
   isoAsset({
     id: "chair-ergonomic-mesh",
-    footprint: { w: 2, d: 2 },
+    footprint: { w: 4, d: 4 },
     heightCm: 120,
     surface: "floor",
     seat: true,
   }),
   isoAsset({
     id: "chair-task-compact",
-    footprint: { w: 2, d: 2 },
+    footprint: { w: 3, d: 3 },
     heightCm: 95,
     surface: "floor",
     seat: true,
   }),
 
+  // Monitors are one tile deep: a screen on a stand barely eats into a desk.
   isoAsset({
     id: "monitor-24-fhd",
-    footprint: { w: 2, d: 1 },
+    footprint: { w: 3, d: 1 },
     heightCm: 45,
     surface: "desk",
   }),
   isoAsset({
     id: "monitor-27-4k",
-    footprint: { w: 2, d: 1 },
+    footprint: { w: 3, d: 1 },
     heightCm: 50,
     surface: "desk",
   }),
   isoAsset({
     id: "monitor-34-ultrawide",
-    footprint: { w: 3, d: 1 },
+    footprint: { w: 4, d: 1 },
     heightCm: 48,
     surface: "desk",
   }),
@@ -137,7 +142,7 @@ const SPECS = [
   }),
   isoAsset({
     id: "laptop-stand",
-    footprint: { w: 1, d: 1 },
+    footprint: { w: 2, d: 1 },
     heightCm: 16,
     surface: "desk",
   }),
@@ -149,7 +154,7 @@ const SPECS = [
   }),
   isoAsset({
     id: "coffee-machine",
-    footprint: { w: 1, d: 1 },
+    footprint: { w: 1, d: 2 },
     heightCm: 33,
     surface: "desk",
   }),
@@ -162,13 +167,13 @@ const SPECS = [
 
   isoAsset({
     id: "plant-monstera",
-    footprint: { w: 1, d: 1 },
+    footprint: { w: 2, d: 2 },
     heightCm: 90,
     surface: "floor",
   }),
   isoAsset({
     id: "rug-woven",
-    footprint: { w: 4, d: 4 },
+    footprint: { w: 8, d: 8 },
     heightCm: 1,
     surface: "floor",
     flat: true,

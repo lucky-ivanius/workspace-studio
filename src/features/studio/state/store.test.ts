@@ -14,7 +14,8 @@ test("adding a product places it and selects it", () => {
   assert.ok(id);
   assert.equal(store().items.length, 1);
   assert.equal(store().selectedId, id);
-  assert.deepEqual(store().items[0].cell, { x: 0, y: 0 });
+  // Centred in the room, so the first desk is not stranded in a corner.
+  assert.deepEqual(store().items[0].cell, { x: 8, y: 10 });
   assert.equal(store().items[0].surface, "floor");
 });
 
@@ -48,8 +49,8 @@ test("a move outside the room is clamped rather than refused", () => {
   assert.ok(id);
 
   assert.equal(store().moveItem(id, { x: 99, y: 99 }), true);
-  // The room is 10x10 and the desk is 4x2.
-  assert.deepEqual(store().items[0].cell, { x: 6, y: 8 });
+  // The room is 24x24 and the desk is 8x4.
+  assert.deepEqual(store().items[0].cell, { x: 16, y: 20 });
 });
 
 test("a move onto another item is refused and changes nothing", () => {
@@ -76,7 +77,7 @@ test("a desk item dragged off every desk stays put", () => {
   const before = store().items.find(
     (item) => item.instanceId === monitor,
   )?.cell;
-  assert.equal(store().moveItem(monitor, { x: 8, y: 8 }), false);
+  assert.equal(store().moveItem(monitor, { x: 20, y: 20 }), false);
   assert.deepEqual(
     store().items.find((item) => item.instanceId === monitor)?.cell,
     before,

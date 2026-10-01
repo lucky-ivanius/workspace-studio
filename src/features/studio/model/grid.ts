@@ -1,11 +1,8 @@
-export const TILE_WIDTH = 128;
-export const TILE_HEIGHT = 64;
+export const TILE_WIDTH = 64;
+export const TILE_HEIGHT = 32;
 
-export const ROOM_COLS = 10;
-export const ROOM_ROWS = 10;
-
-export const ROOM_WIDTH = (ROOM_COLS + ROOM_ROWS) * (TILE_WIDTH / 2);
-export const ROOM_HEIGHT = (ROOM_COLS + ROOM_ROWS) * (TILE_HEIGHT / 2);
+export const ROOM_COLS = 24;
+export const ROOM_ROWS = 24;
 
 export type GridCell = { x: number; y: number };
 export type Footprint = { w: number; d: number };
@@ -30,6 +27,18 @@ export function screenToTile(x: number, y: number): ScreenPoint {
 export function screenToCell(x: number, y: number): GridCell {
   const tile = screenToTile(x, y);
   return { x: Math.round(tile.x), y: Math.round(tile.y) };
+}
+
+/**
+ * Screen position of a tile corner rather than a tile centre: the point where
+ * tiles (x-1, y-1) and (x, y) meet. Corner (0, 0) is the room's back tip and
+ * (ROOM_COLS, ROOM_ROWS) its front tip.
+ */
+export function gridCorner(x: number, y: number): ScreenPoint {
+  return {
+    x: (x - y) * (TILE_WIDTH / 2),
+    y: (x + y - 1) * (TILE_HEIGHT / 2),
+  };
 }
 
 export function footprintCenter(
@@ -115,10 +124,10 @@ export function tileDiamond(x: number, y: number): number[] {
 }
 
 export function roomBounds() {
-  const left = tileToScreen(0, ROOM_ROWS - 1).x - TILE_WIDTH / 2;
-  const right = tileToScreen(ROOM_COLS - 1, 0).x + TILE_WIDTH / 2;
-  const top = tileToScreen(0, 0).y - TILE_HEIGHT / 2;
-  const bottom = tileToScreen(ROOM_COLS - 1, ROOM_ROWS - 1).y + TILE_HEIGHT / 2;
+  const left = gridCorner(0, ROOM_ROWS).x;
+  const right = gridCorner(ROOM_COLS, 0).x;
+  const top = gridCorner(0, 0).y;
+  const bottom = gridCorner(ROOM_COLS, ROOM_ROWS).y;
   return {
     left,
     right,
@@ -129,21 +138,38 @@ export function roomBounds() {
   };
 }
 
+/** Middle of the floor, where the camera rests until the user drags it. */
+export function roomCenter(): ScreenPoint {
+  const bounds = roomBounds();
+  return {
+    x: bounds.left + bounds.width / 2,
+    y: bounds.top + bounds.height / 2,
+  };
+}
+
 /** The floor rhombus, as a flat point list for Graphics.poly. */
 export function roomOutline(): number[] {
-  const back = tileToScreen(0, 0);
-  const right = tileToScreen(ROOM_COLS - 1, 0);
-  const front = tileToScreen(ROOM_COLS - 1, ROOM_ROWS - 1);
-  const left = tileToScreen(0, ROOM_ROWS - 1);
-
   return [
-    back.x,
-    back.y - TILE_HEIGHT / 2,
-    right.x + TILE_WIDTH / 2,
-    right.y,
-    front.x,
-    front.y + TILE_HEIGHT / 2,
-    left.x - TILE_WIDTH / 2,
-    left.y,
-  ];
+    gridCorner(0, 0),
+    gridCorner(ROOM_COLS, 0),
+    gridCorner(ROOM_COLS, ROOM_ROWS),
+    gridCorner(0, ROOM_ROWS),
+  ].flatMap((point) => [point.x, point.y]);
+}
+
+/**
+ * Tile boundaries as lines spanning the whole floor. Stroking these is far
+ * cheaper than outlining every tile: a 24x24 room is 50 lines, not 576 rhombi.
+ */
+export function roomGridLines(): Array<[ScreenPoint, ScreenPoint]> {
+  const lines: Array<[ScreenPoint, ScreenPoint]> = [];
+
+  for (let x = 0; x <= ROOM_COLS; x++) {
+    lines.push([gridCorner(x, 0), gridCorner(x, ROOM_ROWS)]);
+  }
+  for (let y = 0; y <= ROOM_ROWS; y++) {
+    lines.push([gridCorner(0, y), gridCorner(ROOM_COLS, y)]);
+  }
+
+  return lines;
 }

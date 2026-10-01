@@ -134,7 +134,33 @@ export function canPlace(
     );
 }
 
-/** First free slot in reading order, used when an item is added from the catalog. */
+/**
+ * Floor cells a footprint could occupy, nearest the middle of the room first.
+ * A room this large would strand the first desk in a back corner under plain
+ * reading order, so placement works outward from the centre instead.
+ */
+function floorCandidates(footprint: Footprint): GridCell[] {
+  const center = {
+    x: (ROOM_COLS - footprint.w) / 2,
+    y: (ROOM_ROWS - footprint.d) / 2,
+  };
+  const cells: GridCell[] = [];
+
+  for (let y = 0; y <= ROOM_ROWS - footprint.d; y++) {
+    for (let x = 0; x <= ROOM_COLS - footprint.w; x++) {
+      cells.push({ x, y });
+    }
+  }
+
+  // Sorting is stable, so cells the same distance out keep reading order.
+  return cells.sort(
+    (a, b) =>
+      Math.hypot(a.x - center.x, a.y - center.y) -
+      Math.hypot(b.x - center.x, b.y - center.y),
+  );
+}
+
+/** Where an item lands when it is added from the catalog. */
 export function findPlacement(
   items: PlacedItem[],
   asset: AssetSpec,
@@ -170,11 +196,9 @@ export function findPlacement(
     }
   }
 
-  for (let y = 0; y <= ROOM_ROWS - asset.footprint.d; y++) {
-    for (let x = 0; x <= ROOM_COLS - asset.footprint.w; x++) {
-      const candidate: Placement = { cell: { x, y }, surface: "floor" };
-      if (canPlace(items, asset, candidate)) return candidate;
-    }
+  for (const cell of floorCandidates(asset.footprint)) {
+    const candidate: Placement = { cell, surface: "floor" };
+    if (canPlace(items, asset, candidate)) return candidate;
   }
   return undefined;
 }

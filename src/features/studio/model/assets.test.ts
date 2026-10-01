@@ -45,22 +45,32 @@ test("asset ids are unique", () => {
 });
 
 test("the declared size is derived from the footprint and height", () => {
-  // A 2x1 monitor 50 cm tall: span 3, so 192 wide, 96 of base plus 80 of body.
+  // A 3x1 monitor 50 cm tall: span 4, so 128 wide, 64 of base plus 80 of body.
   const monitor = ASSET_LIST.find((spec) => spec.id === "monitor-27-4k");
   assert.ok(monitor);
 
-  assert.equal(monitor.width, 192);
-  assert.equal(monitor.height, 176);
-  assert.deepEqual(monitor.anchor, { x: 96, y: 128 });
-  assert.deepEqual(sourcePixelSize(monitor), { width: 384, height: 352 });
+  assert.equal(monitor.width, 128);
+  assert.equal(monitor.height, 144);
+  assert.deepEqual(monitor.anchor, { x: 64, y: 112 });
+  assert.deepEqual(sourcePixelSize(monitor), { width: 256, height: 288 });
 });
 
 test("a footprint maps to real centimetres", () => {
   const desk = ASSET_LIST.find((spec) => spec.id === "desk-electric-standing");
   assert.ok(desk);
 
-  // Four tiles by two at 40 cm each.
+  // Eight tiles by four at 20 cm each.
   assert.deepEqual(footprintCm(desk), { width: 160, depth: 80 });
+});
+
+test("a monitor is wide enough to read and shallow enough to share a desk", () => {
+  for (const spec of ASSET_LIST) {
+    if (!spec.id.startsWith("monitor-")) continue;
+
+    const size = footprintCm(spec);
+    assert.ok(size.width >= 60, `${spec.id} is only ${size.width}cm wide`);
+    assert.equal(size.depth, 20, `${spec.id} should be one tile deep`);
+  }
 });
 
 test("only desks carry a surface, and it sits at the desk's own height", () => {
