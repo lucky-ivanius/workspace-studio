@@ -35,7 +35,12 @@ export function StudioCanvas() {
     canZoomOut: true,
   });
   const [anchor, setAnchor] = useState<SelectionAnchor | null>(null);
-  const [picking, setPicking] = useState(false);
+  /**
+   * null  → closed
+   * ""    → open for any surface (global Add button)
+   * str   → open for a specific host desk
+   */
+  const [pickingForDesk, setPickingForDesk] = useState<string | null>(null);
 
   const isEmpty = useStudioStore((state) => state.items.length === 0);
   const removeItem = useStudioStore((state) => state.removeItem);
@@ -107,7 +112,7 @@ export function StudioCanvas() {
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button onClick={() => setPicking(true)}>
+              <Button onClick={() => setPickingForDesk("")}>
                 <PlusIcon data-icon="inline-start" />
                 Add item
               </Button>
@@ -118,7 +123,11 @@ export function StudioCanvas() {
 
       {ready && !isEmpty && (
         <div className="absolute top-3 left-3">
-          <Button variant="outline" size="sm" onClick={() => setPicking(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPickingForDesk("")}
+          >
             <PlusIcon data-icon="inline-start" />
             Add item
           </Button>
@@ -130,7 +139,7 @@ export function StudioCanvas() {
         <SelectionToolbar
           anchor={anchor}
           onRemove={() => removeItem(anchor.instanceId)}
-          onAdd={add}
+          onAdd={setPickingForDesk}
         />
       )}
 
@@ -149,11 +158,24 @@ export function StudioCanvas() {
       )}
 
       <AddItemDialog
-        open={picking}
-        onOpenChange={setPicking}
+        open={pickingForDesk !== null}
+        onOpenChange={(open) => {
+          if (!open) setPickingForDesk(null);
+        }}
+        deskOnly={Boolean(pickingForDesk)}
+        title={pickingForDesk ? "Add to this desk" : "Add to your workspace"}
+        description={
+          pickingForDesk
+            ? "Everything here fits on a desk."
+            : "Pick something to drop into the room. Anything that cannot fit goes to your cart instead."
+        }
         onPick={(productId) => {
-          setPicking(false);
-          add(productId);
+          const result = add(productId, pickingForDesk || undefined);
+          // Only a placement puts something on the canvas worth looking at.
+          // A cart confirmation needs the picker to stay where it is, and a
+          // cart-only product leaves the room unchanged, so closing over it
+          // would look like nothing happened at all.
+          if (result.status === "placed") setPickingForDesk(null);
         }}
       />
 

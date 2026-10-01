@@ -2,6 +2,18 @@ import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import { useStudioStore } from "./store";
 
+/**
+ * Representative products, named by the role they play in these tests rather
+ * than repeating monis.rent slugs at thirty call sites.
+ */
+const DESK = "electrical-adjustable-desk";
+const MONITOR = "27-4-k-multimedia-monitor";
+const ULTRAWIDE = "34-4-k-curved-monitor-180-hz";
+const LAMP = "smart-led-desk-lamp-1-s";
+const PLANT = "plant-monstera";
+/** A cable: rentable, but nothing the room could draw. */
+const CART_ONLY = "hdmi-2-0-cable";
+
 beforeEach(() => {
   useStudioStore.setState({
     items: [],
@@ -22,7 +34,7 @@ function place(productId: string, hostId?: string): string {
 }
 
 test("adding a product places it and selects it", () => {
-  const id = place("desk-electric-standing");
+  const id = place(DESK);
 
   assert.equal(store().items.length, 1);
   assert.equal(store().selectedId, id);
@@ -32,27 +44,27 @@ test("adding a product places it and selects it", () => {
 });
 
 test("a desk accessory asks for a desk until one exists", () => {
-  assert.deepEqual(store().addProduct("monitor-27-4k"), {
+  assert.deepEqual(store().addProduct(MONITOR), {
     status: "needs-desk",
   });
   assert.equal(store().items.length, 0);
 
-  place("desk-electric-standing");
-  place("monitor-27-4k");
+  place(DESK);
+  place(MONITOR);
 
   assert.equal(store().items.length, 2);
   assert.equal(store().items[1].surface, "desk");
 });
 
 test("a full room reports no space rather than a missing desk", () => {
-  const desk = place("desk-electric-standing");
+  const desk = place(DESK);
 
   // An 8x4 desk surface holds eight 4x1 ultrawides and no more.
   for (let index = 0; index < 8; index++) {
-    place("monitor-34-ultrawide", desk);
+    place(ULTRAWIDE, desk);
   }
 
-  assert.deepEqual(store().addProduct("monitor-34-ultrawide", desk), {
+  assert.deepEqual(store().addProduct(ULTRAWIDE, desk), {
     status: "no-space",
   });
 });
@@ -62,15 +74,35 @@ test("an unknown product is ignored", () => {
     status: "unknown",
   });
   assert.equal(store().items.length, 0);
+  assert.deepEqual(store().cart, []);
+});
+
+test("a cart-only product skips the room and goes straight to the cart", () => {
+  assert.deepEqual(store().addProduct(CART_ONLY), { status: "carted" });
+
+  assert.equal(store().items.length, 0);
+  assert.deepEqual(store().cart, [{ productId: CART_ONLY, quantity: 1 }]);
+  // Nothing was placed, so nothing became the selection either.
+  assert.equal(store().selectedId, null);
+});
+
+test("a cart-only product never asks for a desk, even when one exists", () => {
+  place(DESK);
+
+  assert.deepEqual(store().addProduct(CART_ONLY), { status: "carted" });
+  assert.deepEqual(store().addProduct(CART_ONLY), { status: "carted" });
+
+  assert.equal(store().items.length, 1);
+  assert.deepEqual(store().cart, [{ productId: CART_ONLY, quantity: 2 }]);
 });
 
 test("a desk item prefers the desk it was added from", () => {
-  const first = place("desk-electric-standing");
+  const first = place(DESK);
   store().moveItem(first, { x: 0, y: 0 });
-  const second = place("desk-electric-standing");
+  const second = place(DESK);
   store().moveItem(second, { x: 0, y: 8 });
 
-  const monitor = place("monitor-27-4k", second);
+  const monitor = place(MONITOR, second);
 
   assert.equal(
     store().items.find((item) => item.instanceId === monitor)?.hostId,
@@ -79,16 +111,16 @@ test("a desk item prefers the desk it was added from", () => {
 });
 
 test("a desk item falls back to another desk when its own is full", () => {
-  const first = place("desk-electric-standing");
+  const first = place(DESK);
   store().moveItem(first, { x: 0, y: 0 });
-  const second = place("desk-electric-standing");
+  const second = place(DESK);
   store().moveItem(second, { x: 0, y: 8 });
 
   for (let index = 0; index < 8; index++) {
-    place("monitor-34-ultrawide", first);
+    place(ULTRAWIDE, first);
   }
 
-  const overflow = place("monitor-34-ultrawide", first);
+  const overflow = place(ULTRAWIDE, first);
   assert.equal(
     store().items.find((item) => item.instanceId === overflow)?.hostId,
     second,
@@ -96,14 +128,14 @@ test("a desk item falls back to another desk when its own is full", () => {
 });
 
 test("a floor item moves to a free tile", () => {
-  const id = place("desk-electric-standing");
+  const id = place(DESK);
 
   assert.equal(store().moveItem(id, { x: 2, y: 4 }), true);
   assert.deepEqual(store().items[0].cell, { x: 2, y: 4 });
 });
 
 test("a move outside the room is clamped rather than refused", () => {
-  const id = place("desk-electric-standing");
+  const id = place(DESK);
 
   assert.equal(store().moveItem(id, { x: 99, y: 99 }), true);
   // The room is 24x24 and the desk is 8x4.
@@ -111,10 +143,10 @@ test("a move outside the room is clamped rather than refused", () => {
 });
 
 test("a move onto another item is refused and changes nothing", () => {
-  const first = place("desk-electric-standing");
+  const first = place(DESK);
   store().moveItem(first, { x: 0, y: 0 });
 
-  const second = place("desk-electric-standing");
+  const second = place(DESK);
 
   const before = store().items.find((item) => item.instanceId === second)?.cell;
   assert.equal(store().moveItem(second, { x: 0, y: 0 }), false);
@@ -125,8 +157,8 @@ test("a move onto another item is refused and changes nothing", () => {
 });
 
 test("a desk item dragged off every desk stays put", () => {
-  place("desk-electric-standing");
-  const monitor = place("monitor-27-4k");
+  place(DESK);
+  const monitor = place(MONITOR);
 
   const before = store().items.find(
     (item) => item.instanceId === monitor,
@@ -143,9 +175,9 @@ test("moving a missing item is a no-op", () => {
 });
 
 test("moving a desk carries whatever stands on it", () => {
-  const desk = place("desk-electric-standing");
-  const monitor = place("monitor-27-4k");
-  const lamp = place("lamp-smart-led");
+  const desk = place(DESK);
+  const monitor = place(MONITOR);
+  const lamp = place(LAMP);
 
   const cellOf = (id: string) =>
     store().items.find((item) => item.instanceId === id)?.cell;
@@ -175,8 +207,8 @@ test("moving a desk carries whatever stands on it", () => {
 });
 
 test("a desk's riders stay on it through a clamped move", () => {
-  const desk = place("desk-electric-standing");
-  const monitor = place("monitor-27-4k");
+  const desk = place(DESK);
+  const monitor = place(MONITOR);
 
   // Far outside the room, so the desk clamps and the monitor must follow the
   // clamped cell rather than the one that was asked for.
@@ -193,11 +225,11 @@ test("a desk's riders stay on it through a clamped move", () => {
 });
 
 test("a refused desk move leaves its riders alone", () => {
-  const first = place("desk-electric-standing");
+  const first = place(DESK);
   store().moveItem(first, { x: 0, y: 0 });
 
-  const second = place("desk-electric-standing");
-  const monitor = place("monitor-27-4k", second);
+  const second = place(DESK);
+  const monitor = place(MONITOR, second);
 
   const before = store().items.find(
     (item) => item.instanceId === monitor,
@@ -212,49 +244,47 @@ test("a refused desk move leaves its riders alone", () => {
 });
 
 test("removing a desk also removes whatever sits on it", () => {
-  const desk = place("desk-electric-standing");
-  place("monitor-27-4k");
-  place("lamp-smart-led");
-  place("plant-monstera");
+  const desk = place(DESK);
+  place(MONITOR);
+  place(LAMP);
+  place(PLANT);
   assert.equal(store().items.length, 4);
 
   store().removeItem(desk);
 
   // Only the plant stood on the floor.
   assert.equal(store().items.length, 1);
-  assert.equal(store().items[0].productId, "plant-monstera");
+  assert.equal(store().items[0].productId, PLANT);
 });
 
 test("removing the selected item clears the selection", () => {
-  const id = place("desk-electric-standing");
+  const id = place(DESK);
 
   store().removeItem(id);
   assert.equal(store().selectedId, null);
 });
 
 test("the cart stacks duplicates and gives them back one at a time", () => {
-  store().addToCart("monitor-27-4k");
-  store().addToCart("monitor-27-4k");
-  store().addToCart("lamp-smart-led");
+  store().addToCart(MONITOR);
+  store().addToCart(MONITOR);
+  store().addToCart(LAMP);
 
   assert.deepEqual(store().cart, [
-    { productId: "monitor-27-4k", quantity: 2 },
-    { productId: "lamp-smart-led", quantity: 1 },
+    { productId: MONITOR, quantity: 2 },
+    { productId: LAMP, quantity: 1 },
   ]);
 
   // Nothing is placed, so the cart is the only record of these.
   assert.equal(store().items.length, 0);
 
-  store().removeFromCart("monitor-27-4k");
+  store().removeFromCart(MONITOR);
   assert.deepEqual(store().cart, [
-    { productId: "monitor-27-4k", quantity: 1 },
-    { productId: "lamp-smart-led", quantity: 1 },
+    { productId: MONITOR, quantity: 1 },
+    { productId: LAMP, quantity: 1 },
   ]);
 
-  store().removeFromCart("monitor-27-4k");
-  assert.deepEqual(store().cart, [
-    { productId: "lamp-smart-led", quantity: 1 },
-  ]);
+  store().removeFromCart(MONITOR);
+  assert.deepEqual(store().cart, [{ productId: LAMP, quantity: 1 }]);
 });
 
 test("an unknown product never reaches the cart", () => {
@@ -262,9 +292,15 @@ test("an unknown product never reaches the cart", () => {
   assert.deepEqual(store().cart, []);
 });
 
+test("a staging item never reaches the cart", () => {
+  // Staging is scenery, so it is never billed and has no cart to fall back to.
+  store().addToCart(PLANT);
+  assert.deepEqual(store().cart, []);
+});
+
 test("clearing empties the room and the cart alike", () => {
-  place("desk-electric-standing");
-  store().addToCart("monitor-27-4k");
+  place(DESK);
+  store().addToCart(MONITOR);
 
   store().clear();
 

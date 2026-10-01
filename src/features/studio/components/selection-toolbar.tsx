@@ -2,18 +2,7 @@
 
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { SelectionAnchor } from "../engine/scene";
-import { DESK_GROUPS } from "../model/catalog";
 
 /**
  * Floats at the top-right corner of the selected item. Positioned from the
@@ -27,8 +16,8 @@ export function SelectionToolbar({
 }: {
   anchor: SelectionAnchor;
   onRemove: () => void;
-  /** Adds a product, naming this desk so the item lands on it. */
-  onAdd: (productId: string, hostId: string) => void;
+  /** Opens the picker for this desk, so whatever is chosen lands on it. */
+  onAdd: (hostId: string) => void;
 }) {
   return (
     <div
@@ -38,39 +27,15 @@ export function SelectionToolbar({
       style={{ left: anchor.x, top: anchor.y }}
     >
       {anchor.isDesk && (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className="pointer-events-auto"
-            render={<Button variant="ghost" size="xs" />}
-          >
-            <PlusIcon data-icon="inline-start" />
-            Add
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="start">
-            <DropdownMenuGroup>
-              {DESK_GROUPS.map((group) => (
-                <DropdownMenuSub key={group.id}>
-                  <DropdownMenuSubTrigger>
-                    {group.addLabel}
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuGroup>
-                      {group.entries.map((entry) => (
-                        <DropdownMenuItem
-                          key={entry.id}
-                          onClick={() => onAdd(entry.id, anchor.instanceId)}
-                        >
-                          {entry.name}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuGroup>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              ))}
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          variant="ghost"
+          size="xs"
+          className="pointer-events-auto"
+          onClick={() => onAdd(anchor.instanceId)}
+        >
+          <PlusIcon data-icon="inline-start" />
+          Add
+        </Button>
       )}
 
       <Button

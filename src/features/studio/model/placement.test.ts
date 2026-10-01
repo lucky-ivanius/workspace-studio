@@ -5,10 +5,19 @@ import { cellsOverlap, isInsideRoom } from "./grid";
 import { canPlace, deskAt, findPlacement, zIndexOf } from "./placement";
 import type { PlacedItem } from "./types";
 
-const DESK = "desk-electric-standing";
-const CHAIR = "chair-ergonomic-mesh";
-const MONITOR = "monitor-27-4k";
+/** Product ids, as the store and the catalogue know them. */
+const DESK = "electrical-adjustable-desk";
+const MONITOR = "27-4-k-multimedia-monitor";
 const PLANT = "plant-monstera";
+
+/**
+ * The art each of those products maps to. Placement reasons about assets, not
+ * products, so the two namespaces are kept apart here on purpose.
+ */
+const DESK_ASSET = "desk-electric-standing";
+const CHAIR_ASSET = "chair-ergonomic-mesh";
+const MONITOR_ASSET = "monitor-27-4k";
+const LAMP_ASSET = "lamp-smart-led";
 
 let nextOrdinal = 0;
 
@@ -29,12 +38,12 @@ function place(
 }
 
 test("a desk-mounted item has nowhere to go until a desk exists", () => {
-  assert.equal(findPlacement([], getAsset(MONITOR)), undefined);
+  assert.equal(findPlacement([], getAsset(MONITOR_ASSET)), undefined);
 });
 
 test("a monitor lands on the desk that is already in the room", () => {
   const desk = place(DESK, { x: 0, y: 0 });
-  const placement = findPlacement([desk], getAsset(MONITOR));
+  const placement = findPlacement([desk], getAsset(MONITOR_ASSET));
 
   assert.deepEqual(placement, {
     cell: { x: 0, y: 0 },
@@ -45,7 +54,7 @@ test("a monitor lands on the desk that is already in the room", () => {
 
 test("a chair tucks in front of the desk rather than beside it", () => {
   const desk = place(DESK, { x: 0, y: 0 });
-  const placement = findPlacement([desk], getAsset(CHAIR));
+  const placement = findPlacement([desk], getAsset(CHAIR_ASSET));
 
   // Desk is 8 wide and 4 deep, so a 4-wide chair centres at x=2, y=4.
   assert.deepEqual(placement, { cell: { x: 2, y: 4 }, surface: "floor" });
@@ -55,14 +64,14 @@ test("two floor items cannot share tiles", () => {
   const desk = place(DESK, { x: 0, y: 0 });
 
   assert.equal(
-    canPlace([desk], getAsset(CHAIR), {
+    canPlace([desk], getAsset(CHAIR_ASSET), {
       cell: { x: 0, y: 0 },
       surface: "floor",
     }),
     false,
   );
   assert.equal(
-    canPlace([desk], getAsset(CHAIR), {
+    canPlace([desk], getAsset(CHAIR_ASSET), {
       cell: { x: 0, y: 4 },
       surface: "floor",
     }),
@@ -74,7 +83,7 @@ test("a rug lies flat, so other items may stand on it", () => {
   const rug = place("rug-woven", { x: 0, y: 0 });
 
   assert.equal(
-    canPlace([rug], getAsset(CHAIR), {
+    canPlace([rug], getAsset(CHAIR_ASSET), {
       cell: { x: 1, y: 1 },
       surface: "floor",
     }),
@@ -87,27 +96,36 @@ test("a desk item must stay within its desk", () => {
   const onDesk = { surface: "desk" as const, hostId: desk.instanceId };
 
   assert.equal(
-    canPlace([desk], getAsset(MONITOR), { cell: { x: 2, y: 1 }, ...onDesk }),
+    canPlace([desk], getAsset(MONITOR_ASSET), {
+      cell: { x: 2, y: 1 },
+      ...onDesk,
+    }),
     true,
   );
   // The desk ends at x=8, so a 3-wide monitor cannot start at x=6.
   assert.equal(
-    canPlace([desk], getAsset(MONITOR), { cell: { x: 6, y: 0 }, ...onDesk }),
+    canPlace([desk], getAsset(MONITOR_ASSET), {
+      cell: { x: 6, y: 0 },
+      ...onDesk,
+    }),
     false,
   );
   assert.equal(
-    canPlace([desk], getAsset(MONITOR), { cell: { x: 0, y: 4 }, ...onDesk }),
+    canPlace([desk], getAsset(MONITOR_ASSET), {
+      cell: { x: 0, y: 4 },
+      ...onDesk,
+    }),
     false,
   );
 });
 
 test("a monitor and a lamp leave most of the desk free", () => {
   const desk = place(DESK, { x: 0, y: 0 });
-  const surface = getAsset(DESK).deskSurface;
+  const surface = getAsset(DESK_ASSET).deskSurface;
   assert.ok(surface);
 
-  const monitor = getAsset(MONITOR).footprint;
-  const lamp = getAsset("lamp-smart-led").footprint;
+  const monitor = getAsset(MONITOR_ASSET).footprint;
+  const lamp = getAsset(LAMP_ASSET).footprint;
   const slots = surface.footprint.w * surface.footprint.d;
   const taken = monitor.w * monitor.d + lamp.w * lamp.d;
 
@@ -117,12 +135,15 @@ test("a monitor and a lamp leave most of the desk free", () => {
   // Both still fit side by side, back row.
   const onDesk = { surface: "desk" as const, hostId: desk.instanceId };
   assert.equal(
-    canPlace([desk], getAsset(MONITOR), { cell: { x: 0, y: 0 }, ...onDesk }),
+    canPlace([desk], getAsset(MONITOR_ASSET), {
+      cell: { x: 0, y: 0 },
+      ...onDesk,
+    }),
     true,
   );
   const withMonitor = [desk, place(MONITOR, { x: 0, y: 0 }, desk.instanceId)];
   assert.equal(
-    canPlace(withMonitor, getAsset("lamp-smart-led"), {
+    canPlace(withMonitor, getAsset(LAMP_ASSET), {
       cell: { x: 3, y: 0 },
       ...onDesk,
     }),
@@ -134,7 +155,7 @@ test("a desk item needs a host that exists", () => {
   const desk = place(DESK, { x: 0, y: 0 });
 
   assert.equal(
-    canPlace([desk], getAsset(MONITOR), {
+    canPlace([desk], getAsset(MONITOR_ASSET), {
       cell: { x: 0, y: 0 },
       surface: "desk",
       hostId: "nope",
@@ -175,7 +196,7 @@ test("a floor item nearer the camera draws over a desk and everything on it", ()
 
 test("the room fills up and eventually refuses another desk", () => {
   const items: PlacedItem[] = [];
-  const asset = getAsset(DESK);
+  const asset = getAsset(DESK_ASSET);
 
   for (let attempt = 0; attempt < 100; attempt++) {
     const placement = findPlacement(items, asset);
@@ -204,7 +225,7 @@ test("the room fills up and eventually refuses another desk", () => {
 });
 
 test("the first desk lands in the middle of the room, not in a corner", () => {
-  const placement = findPlacement([], getAsset(DESK));
+  const placement = findPlacement([], getAsset(DESK_ASSET));
   assert.ok(placement);
 
   // An 8x4 desk centred in a 24x24 room.

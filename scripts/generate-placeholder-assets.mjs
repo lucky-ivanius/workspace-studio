@@ -49,7 +49,43 @@ const PALETTES = {
   },
 };
 
+/** Stand-in blocks, tinted by shape class so a room of them still reads. */
+const GENERIC_PALETTES = {
+  "generic-screen": PALETTES.monitor,
+  "generic-desk-small": {
+    top: [172, 178, 190],
+    left: [138, 145, 158],
+    right: [110, 117, 129],
+  },
+  "generic-desk-medium": {
+    top: [142, 160, 188],
+    left: [112, 129, 156],
+    right: [88, 103, 127],
+  },
+  "generic-desk-tall": {
+    top: [164, 146, 190],
+    left: [132, 115, 158],
+    right: [105, 90, 129],
+  },
+  "generic-floor-small": {
+    top: [138, 184, 180],
+    left: [108, 151, 148],
+    right: [84, 122, 119],
+  },
+  "generic-floor-large": {
+    top: [186, 164, 136],
+    left: [152, 131, 106],
+    right: [123, 104, 82],
+  },
+  "generic-floor-wide": {
+    top: [190, 160, 170],
+    left: [156, 128, 138],
+    right: [126, 101, 111],
+  },
+};
+
 function paletteFor(id) {
+  if (GENERIC_PALETTES[id]) return GENERIC_PALETTES[id];
   const family = Object.keys(PALETTES).find((key) => id.startsWith(`${key}-`));
   return PALETTES[family ?? "default"];
 }
