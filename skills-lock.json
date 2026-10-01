@@ -91,6 +91,12 @@
       "skillPath": "cursor-team-kit/skills/run-smoke-tests/SKILL.md",
       "computedHash": "3e44933b5ad6439c42d5163a24f31515988ade894e000d9252e402ede1c23b47"
     },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "f615de216e085a84e31593ad0fa9062232adc40cd87b7c7ab2b8e49abf6500be"
+    },
     "teach": {
       "source": "cursor/plugins",
       "sourceType": "github",
