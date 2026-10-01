@@ -114,6 +114,42 @@ async function selectDesk(page: Page, canvas: Locator) {
   throw new Error("no desk found on the canvas");
 }
 
+/**
+ * Clicks sprites until the selected one is not a desk. Only a desk's toolbar
+ * carries the add menu, so its absence names the item standing on the desk.
+ */
+async function selectDeskItem(page: Page, canvas: Locator) {
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("canvas has no box");
+
+  for (let row = 1; row < 10; row++) {
+    for (let column = 1; column < 10; column++) {
+      const point = {
+        x: box.x + (box.width * column) / 10,
+        y: box.y + (box.height * row) / 10,
+      };
+      if ((await cursorOver(page, point)) !== "grab") continue;
+
+      await page.mouse.click(point.x, point.y);
+      await expect(deleteSelected(page)).toBeVisible();
+      if (!(await deskMenu(page).isVisible())) return point;
+    }
+  }
+
+  throw new Error("nothing standing on a desk was found on the canvas");
+}
+
+/**
+ * Where the toolbar is pinned, which is the top-right corner of the selected
+ * item's art. Reads an item's screen position without repeating the camera
+ * transform in the test.
+ */
+async function toolbarAnchor(page: Page) {
+  const box = await deleteSelected(page).boundingBox();
+  if (!box) throw new Error("the selection toolbar has no box");
+  return { x: Math.round(box.x), y: Math.round(box.y) };
+}
+
 function zoomTrigger(page: Page) {
   // The desk toolbar also carries a dropdown, so the zoom one is named.
   return page.getByRole("button", { name: /^Zoom, currently/ });
@@ -280,6 +316,50 @@ test("dragging a desk moves it to a new tile", async ({ page }) => {
     .toBe("grab");
 
   expect(await cursorOver(page, from)).not.toBe("grab");
+  expect(problems).toEqual([]);
+});
+
+test("dragging a desk carries what stands on it", async ({ page }) => {
+  const { canvas, problems } = await openStudio(page);
+
+  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Monitors", '27" 4K Multimedia Monitor');
+
+  // Adding selects the monitor, so its toolbar already marks where it stands.
+  const monitorBefore = await toolbarAnchor(page);
+
+  const grab = await selectDesk(page, canvas);
+  const deskBefore = await toolbarAnchor(page);
+
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("canvas has no box");
+
+  // Straight down the screen moves the desk towards the camera.
+  const drop = { x: grab.x, y: grab.y + box.height * 0.2 };
+  await page.mouse.move(grab.x, grab.y);
+  await page.mouse.down();
+  for (let step = 1; step <= 10; step++) {
+    await page.mouse.move(grab.x, grab.y + ((drop.y - grab.y) * step) / 10);
+  }
+  await page.mouse.up();
+
+  // The drag leaves the desk selected, so this is the same corner moved.
+  const deskAfter = await toolbarAnchor(page);
+  const travelled = {
+    x: deskAfter.x - deskBefore.x,
+    y: deskAfter.y - deskBefore.y,
+  };
+  expect(travelled).not.toEqual({ x: 0, y: 0 });
+
+  await selectDeskItem(page, canvas);
+  const monitorAfter = await toolbarAnchor(page);
+
+  // The monitor rode along, so its corner moved by exactly the desk's travel.
+  expect({
+    x: monitorAfter.x - monitorBefore.x,
+    y: monitorAfter.y - monitorBefore.y,
+  }).toEqual(travelled);
+
   expect(problems).toEqual([]);
 });
 

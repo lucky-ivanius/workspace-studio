@@ -155,17 +155,37 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
     const asset = assetOf(item);
     if (!canPlace(items, asset, target, instanceId)) return false;
 
+    // Anything resting on a moved desk rides along. Desk items hold absolute
+    // cells, so shifting them by the same delta keeps each one on the spot of
+    // the surface it already occupied, and preserves the fit the desk vouched
+    // for: the surface travels with the desk, so nothing can slide off it or
+    // onto a neighbour.
+    const shift = {
+      x: target.cell.x - item.cell.x,
+      y: target.cell.y - item.cell.y,
+    };
+
     set({
-      items: items.map((candidate) =>
-        candidate.instanceId === instanceId
-          ? {
-              ...candidate,
-              cell: target.cell,
-              surface: target.surface,
-              hostId: target.hostId,
-            }
-          : candidate,
-      ),
+      items: items.map((candidate) => {
+        if (candidate.instanceId === instanceId) {
+          return {
+            ...candidate,
+            cell: target.cell,
+            surface: target.surface,
+            hostId: target.hostId,
+          };
+        }
+
+        if (candidate.hostId !== instanceId) return candidate;
+
+        return {
+          ...candidate,
+          cell: {
+            x: candidate.cell.x + shift.x,
+            y: candidate.cell.y + shift.y,
+          },
+        };
+      }),
     });
 
     return true;
