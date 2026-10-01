@@ -110,6 +110,30 @@ function summary(page: Page) {
   return page.getByRole("complementary").filter({ hasText: "Your setup" });
 }
 
+/** Rental length is a select, so picking one is a click and a pick. */
+async function chooseWeeks(page: Page, weeks: number) {
+  await summary(page).getByRole("combobox", { name: "Rental length" }).click();
+  await page
+    .getByRole("option", { name: new RegExp(`^${weeks} weeks?\\b`) })
+    .click();
+  await expect(
+    page.getByText(new RegExp(`^Total for ${weeks} weeks?$`)),
+  ).toBeVisible();
+}
+
+/** A product named as the quantity stepper on its summary line labels it. */
+function quantity(page: Page, name: string) {
+  return summary(page).getByLabel(`${name} quantity`);
+}
+
+function stepUp(page: Page, name: string) {
+  return summary(page).getByRole("button", { name: `One more ${name}` });
+}
+
+function stepDown(page: Page, name: string) {
+  return summary(page).getByRole("button", { name: `One less ${name}` });
+}
+
 /** The toolbar that floats over the selected item on the canvas. */
 function deleteSelected(page: Page) {
   return page.getByRole("button", { name: "Delete selected" });
@@ -453,16 +477,141 @@ test("the total is the weekly rate for the whole stay plus the deposit", async (
   const amount = async (name: string) =>
     money(await page.getByTestId(`summary-${name}`).innerText());
 
+  const rates = new Map<number, number>();
+
   for (const weeks of [1, 2, 4, 12]) {
-    await page.getByRole("button", { name: `${weeks}w`, exact: true }).click();
-    await expect(page.getByText(`Total for ${weeks} weeks`)).toBeVisible();
+    await chooseWeeks(page, weeks);
 
     const perWeek = await amount("per-week");
     const deposit = await amount("deposit");
 
     expect(perWeek).toBeGreaterThan(0);
     expect(await amount("total")).toBe(perWeek * weeks + deposit);
+
+    rates.set(weeks, perWeek);
   }
+
+  // Two tiers, split at the month the storefront bills as long stay. Under it
+  // every length costs the same per week; from four weeks on it is cheaper.
+  expect(rates.get(2)).toBe(rates.get(1));
+  expect(rates.get(12)).toBe(rates.get(4));
+  expect(rates.get(4)).toBeLessThan(rates.get(1) ?? 0);
+
+  expect(problems).toEqual([]);
+});
+
+test("a long stay says so once the cheaper rate is in", async ({ page }) => {
+  const { problems } = await openStudio(page);
+
+  await add(page, "Electrical Adjustable Desk");
+
+  const notice = summary(page).getByText(/Long-stay rate applied/);
+
+  await chooseWeeks(page, 2);
+  await expect(notice).toBeHidden();
+
+  await chooseWeeks(page, 4);
+  await expect(notice).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
+test("stepping a line up rents another copy without drawing it", async ({
+  page,
+}) => {
+  const { canvas, problems } = await openStudio(page);
+  const monitor = `27" 4K Multimedia Monitor`;
+
+  await add(page, "Electrical Adjustable Desk");
+  await add(page, monitor);
+
+  await expect(quantity(page, monitor)).toHaveText("1");
+  await expect(summary(page).getByText("in cart")).toBeHidden();
+
+  const perWeek = () =>
+    page
+      .getByTestId("summary-per-week")
+      .innerText()
+      .then((text) => money(text));
+  const before = await perWeek();
+
+  await stepUp(page, monitor).click();
+
+  // Two rented, one of them carted, so exactly one is drawn: the step up added
+  // to the cart instead of reaching for the canvas.
+  await expect(quantity(page, monitor)).toHaveText("2");
+  await expect(summary(page).getByText("1 in cart")).toBeVisible();
+  expect(await perWeek()).toBeGreaterThan(before);
+
+  // Clearing the desk sends everything that stood on it to the cart, so with an
+  // empty room all two copies are carted. Had the step up drawn a second
+  // monitor, the count would have read three all along.
+  await selectDesk(page, canvas);
+  await deleteSelected(page).click();
+
+  await expect(
+    summary(page).getByText("Electrical Adjustable Desk"),
+  ).toBeHidden();
+  await expect(page.getByText("Nothing in the room yet")).toBeVisible();
+  await expect(quantity(page, monitor)).toHaveText("2");
+  await expect(summary(page).getByText("2 in cart")).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
+test("stepping a line down gives back the cart copy before the room's", async ({
+  page,
+}) => {
+  const { problems } = await openStudio(page);
+  const monitor = `27" 4K Multimedia Monitor`;
+
+  await add(page, "Electrical Adjustable Desk");
+  await add(page, monitor);
+
+  // One on the desk, one in the cart, then a second on the desk.
+  await stepUp(page, monitor).click();
+  await add(page, monitor);
+  await expect(quantity(page, monitor)).toHaveText("3");
+  await expect(summary(page).getByText("1 in cart")).toBeVisible();
+
+  // The cart copy costs nothing to give back, so it goes first.
+  await stepDown(page, monitor).click();
+  await expect(quantity(page, monitor)).toHaveText("2");
+  await expect(summary(page).getByText("in cart")).toBeHidden();
+
+  // With the cart empty, the newest of the two on the desk is next.
+  await stepDown(page, monitor).click();
+  await expect(quantity(page, monitor)).toHaveText("1");
+
+  // And the last one takes the line with it, while the desk stays.
+  await stepDown(page, monitor).click();
+  await expect(summary(page).getByText(monitor)).toBeHidden();
+  await expect(
+    summary(page).getByText("Electrical Adjustable Desk"),
+  ).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
+test("stepping a desk down leaves what stood on it rented", async ({
+  page,
+}) => {
+  const { problems } = await openStudio(page);
+  const monitor = `27" 4K Multimedia Monitor`;
+
+  await add(page, "Electrical Adjustable Desk");
+  await add(page, monitor);
+
+  await stepDown(page, "Electrical Adjustable Desk").click();
+
+  // The desk is gone from the room and the bill, and the monitor's own quantity
+  // is untouched: `-` on one line may not change another's.
+  await expect(
+    summary(page).getByText("Electrical Adjustable Desk"),
+  ).toBeHidden();
+  await expect(page.getByText("Nothing in the room yet")).toBeVisible();
+  await expect(quantity(page, monitor)).toHaveText("1");
+  await expect(summary(page).getByText("1 in cart")).toBeVisible();
 
   expect(problems).toEqual([]);
 });
@@ -685,23 +834,33 @@ test("deleting from the canvas toolbar takes the item off the bill", async ({
   expect(problems).toEqual([]);
 });
 
-test("deleting a desk takes everything standing on it", async ({ page }) => {
+test("deleting a desk keeps what stood on it, in the cart", async ({
+  page,
+}) => {
   const { canvas, problems } = await openStudio(page);
+  const monitor = `27" 4K Multimedia Monitor`;
 
   await add(page, "Electrical Adjustable Desk");
-  await add(page, `27" 4K Multimedia Monitor`);
-  await expect(
-    summary(page).getByText('27" 4K Multimedia Monitor'),
-  ).toBeVisible();
+  await add(page, monitor);
+  await expect(summary(page).getByText(monitor)).toBeVisible();
 
   await selectDesk(page, canvas);
   await deleteSelected(page).click();
 
-  // The monitor rested on the desk, so it went with it.
+  // The desk is off the canvas and off the bill.
+  await expect(
+    summary(page).getByText("Electrical Adjustable Desk"),
+  ).toBeHidden();
+
+  // The monitor lost its surface, so the room is empty, but losing a desk is no
+  // reason to stop renting a monitor: it is still on the bill, in the cart.
   await expect(page.getByText("Nothing in the room yet")).toBeVisible();
+  await expect(quantity(page, monitor)).toHaveText("1");
+  await expect(summary(page).getByText("1 in cart")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Rent this setup" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
+
   expect(problems).toEqual([]);
 });
 

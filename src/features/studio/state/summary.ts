@@ -1,4 +1,9 @@
-import { getProduct, type RentalProduct, weeklyRate } from "../model/catalog";
+import {
+  getProduct,
+  isLongStay,
+  type RentalProduct,
+  weeklyRate,
+} from "../model/catalog";
 import type { PlacedItem } from "../model/types";
 import type { CartEntry } from "./store";
 
@@ -18,6 +23,8 @@ export type Summary = {
   deposit: number;
   total: number;
   weeks: number;
+  /** Whether the stay earns the cheaper long-stay rate. */
+  longStay: boolean;
 };
 
 /**
@@ -59,8 +66,6 @@ export function summarize(
     });
   }
 
-  lines.sort((a, b) => b.weeklyTotal - a.weeklyTotal);
-
   const perWeek = lines.reduce((sum, line) => sum + line.weeklyTotal, 0);
   const deposit = lines.reduce(
     (sum, line) => sum + (line.product.securityDeposit ?? 0) * line.quantity,
@@ -75,6 +80,7 @@ export function summarize(
     deposit,
     total: perWeek * weeks + deposit,
     weeks,
+    longStay: isLongStay(weeks),
   };
 }
 
@@ -84,4 +90,9 @@ export function formatUsd(amount: number): string {
     currency: "USD",
     maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
   });
+}
+
+/** "1 week" or "4 weeks", so a one-week stay does not read "1 weeks". */
+export function formatWeeks(weeks: number): string {
+  return weeks === 1 ? "1 week" : `${weeks} weeks`;
 }

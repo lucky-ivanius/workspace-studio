@@ -125,8 +125,9 @@ both. Getting this wrong is subtle, so it is covered by tests.
 
 An item sits on the `floor`, or on the `desk` surface of a specific host desk.
 Desks declare `surfaceHeightCm`; anything placed on one is raised by that
-height and constrained to the desk's tiles. Removing a desk removes everything
-on it.
+height and constrained to the desk's tiles. Removing a desk clears everything on
+it off the canvas, and those items move to the cart rather than off the bill —
+see [Losing a surface](#losing-a-surface).
 
 ### Where a new item lands
 
@@ -372,9 +373,46 @@ excluded from checkout.
 
 ### Pricing
 
-`pricePerWeek` applies under one month; `longStayPricePerWeek` applies beyond
-it, which is the "From $X/week" figure the storefront shows. `weeklyRate` picks
-the tier and `summarize` builds the checkout lines.
+`pricePerWeek` applies to stays under one month; `longStayPricePerWeek` applies
+from one month onwards, and is the "From $X/week" figure the storefront shows.
+The boundary is four weeks rather than past them, because the storefront's own
+`monthlyPrice` is four weeks of the long-stay rate for every product it carries.
+`LONG_STAY_WEEKS` holds that number, `weeklyRate` picks the tier and `summarize`
+builds the checkout lines. The rental length is chosen from a select at the foot
+of the summary, just above the totals it changes.
+
+### Renting more than one
+
+A summary line is one product, however many copies of it are being rented, and
+its `[- n +]` stepper is where that number is changed. The two directions are not
+symmetrical, because the room is something the user arranged by hand:
+
+- **`+`** adds a **cart copy** only. It is rented and billed, but nothing new is
+  drawn, so a step up can never rearrange the canvas. Putting a second one in the
+  room is a job for the picker.
+- **`-`** gives back a cart copy first, and only reaches for a sprite once the
+  cart is empty. The sprite it takes is the **newest** one, by `ordinal`, so
+  repeated clicks undo the adds in the order they were made.
+
+So a monitor placed in the room, stepped up once, then added again from the
+picker reads 3: two drawn and one carted. Stepping down three times gives back
+the carted one, then the second sprite, then the first.
+
+### Losing a surface
+
+Taking a desk out of the room leaves whatever stood on it with nowhere to stand.
+Those riders move **to the cart** rather than off the bill, and this is the same
+whether the desk went via `-` on its summary line or the trash on the canvas
+toolbar. `removeItem` owns the rule, so both paths get it.
+
+The reason is that a line's quantity belongs to that line. Removing a desk is
+removing a desk; it may not quietly change what a monitor costs, and a user who
+clears the canvas to start the arrangement over has not said anything about
+wanting fewer monitors. Each rider is carted individually, so two monitors on the
+desk leave two cart copies and the quantity holds.
+
+Staging is the exception, because it is never billed: a prop on a desk has no
+cart to fall back to, so it simply goes.
 
 ## Commands
 
