@@ -1,5 +1,4 @@
-import { getAsset } from "./assets";
-import { assetIdFor } from "./catalog";
+import { artFor } from "./art";
 import {
   cellsOverlap,
   type Footprint,
@@ -20,10 +19,9 @@ export type Placement = {
 type Area = { cell: GridCell; footprint: Footprint };
 
 export function assetOf(item: PlacedItem): AssetSpec {
-  const assetId = assetIdFor(item.productId);
-  if (!assetId)
-    throw new Error(`No asset mapped for product "${item.productId}"`);
-  return getAsset(assetId);
+  const asset = artFor(item.productId);
+  if (!asset) throw new Error(`No art for catalog entry "${item.productId}"`);
+  return asset;
 }
 
 /** Desks are the only items carrying a surface that others can sit on. */

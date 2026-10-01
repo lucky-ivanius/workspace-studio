@@ -1,11 +1,18 @@
 #!/usr/bin/env node
 /**
- * Renders placeholder isometric art for every entry in the asset registry.
+ * Renders placeholder isometric art at the exact size the room expects.
  *
- *   pnpm assets:placeholders          # only fills in missing files
- *   pnpm assets:placeholders --force  # redraws everything
+ *   pnpm assets:placeholders               # fill in missing drawings
+ *   pnpm assets:placeholders --force       # redraw them all
+ *   pnpm assets:placeholders --for <slug>  # draw a canvas for one catalog entry
  *
- * Each PNG is written at the exact size the registry declares, so real art can
+ * Without `--for` it covers every drawing the room reaches today: the shared art
+ * and the stand-ins named in catalog.json. With it, it draws the canvas a single
+ * product or prop would need for art of its own, which is how you start a real
+ * drawing — mark the entry placeable, run this with its slug, then paint over the
+ * PNG it leaves in public/assets/studio.
+ *
+ * Each PNG is written at the exact size catalog.json implies, so real art can
  * replace a placeholder file-for-file without touching any code. The generator
  * draws the footprint rhombus the grid actually uses plus a block of the
  * declared height, which makes alignment mistakes obvious on screen.
@@ -20,8 +27,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deflateSync } from "node:zlib";
 
+import { ASSET_LIST, ownArtFor } from "../src/features/studio/model/art.ts";
 import {
-  ASSET_LIST,
   ASSET_PIXEL_RATIO,
   sourcePixelSize,
 } from "../src/features/studio/model/assets.ts";
@@ -84,9 +91,10 @@ const GENERIC_PALETTES = {
   },
 };
 
+/** Art is named after the thing it draws, so the name picks the palette. */
 function paletteFor(id) {
   if (GENERIC_PALETTES[id]) return GENERIC_PALETTES[id];
-  const family = Object.keys(PALETTES).find((key) => id.startsWith(`${key}-`));
+  const family = Object.keys(PALETTES).find((key) => id.includes(key));
   return PALETTES[family ?? "default"];
 }
 
@@ -285,10 +293,33 @@ function render(spec) {
 await mkdir(OUT_DIR, { recursive: true });
 
 const force = process.argv.includes("--force");
+
+const forIndex = process.argv.indexOf("--for");
+const forId = forIndex === -1 ? null : process.argv[forIndex + 1];
+
+if (forIndex !== -1 && !forId) {
+  process.stderr.write("--for needs the slug of a catalog entry.\n");
+  process.exit(1);
+}
+
+/**
+ * One entry's own canvas, or every drawing the room reaches. A `--for` target
+ * has to be placeable: art for something the room never draws would sit unused.
+ */
+const specs = forId ? [ownArtFor(forId)] : ASSET_LIST;
+
+if (forId && !specs[0]) {
+  process.stderr.write(
+    `"${forId}" is not a placeable catalog entry. Check the slug, and that its ` +
+      `studio block in catalog.json says placeable: true.\n`,
+  );
+  process.exit(1);
+}
+
 let written = 0;
 let skipped = 0;
 
-for (const spec of ASSET_LIST) {
+for (const spec of specs) {
   const file = resolve(OUT_DIR, `${spec.id}.png`);
   const { width, height } = sourcePixelSize(spec);
 
@@ -306,4 +337,7 @@ for (const spec of ASSET_LIST) {
 process.stdout.write(`\nDrew ${written}, skipped ${skipped}, in ${OUT_DIR}\n`);
 if (skipped > 0 && !force) {
   process.stdout.write("Pass --force to redraw existing files.\n");
+}
+if (written > 0) {
+  process.stdout.write("Run pnpm art:index so the app can see new art.\n");
 }

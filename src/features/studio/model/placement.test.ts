@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { getAsset } from "./assets";
+import { artFor } from "./art";
 import { cellsOverlap, isInsideRoom } from "./grid";
 import { canPlace, deskAt, findPlacement, zIndexOf } from "./placement";
 import type { PlacedItem } from "./types";
@@ -9,15 +9,18 @@ import type { PlacedItem } from "./types";
 const DESK = "electrical-adjustable-desk";
 const MONITOR = "27-4-k-multimedia-monitor";
 const PLANT = "plant-monstera";
+const CHAIR = "ergonomic-office-chair";
+const LAMP = "smart-led-desk-lamp-1-s";
 
 /**
- * The art each of those products maps to. Placement reasons about assets, not
- * products, so the two namespaces are kept apart here on purpose.
+ * Placement reasons about art rather than products, so the two namespaces are
+ * kept apart here on purpose.
  */
-const DESK_ASSET = "desk-electric-standing";
-const CHAIR_ASSET = "chair-ergonomic-mesh";
-const MONITOR_ASSET = "monitor-27-4k";
-const LAMP_ASSET = "lamp-smart-led";
+function art(productId: string) {
+  const asset = artFor(productId);
+  if (!asset) throw new Error(`${productId} has no art`);
+  return asset;
+}
 
 let nextOrdinal = 0;
 
@@ -38,12 +41,12 @@ function place(
 }
 
 test("a desk-mounted item has nowhere to go until a desk exists", () => {
-  assert.equal(findPlacement([], getAsset(MONITOR_ASSET)), undefined);
+  assert.equal(findPlacement([], art(MONITOR)), undefined);
 });
 
 test("a monitor lands on the desk that is already in the room", () => {
   const desk = place(DESK, { x: 0, y: 0 });
-  const placement = findPlacement([desk], getAsset(MONITOR_ASSET));
+  const placement = findPlacement([desk], art(MONITOR));
 
   assert.deepEqual(placement, {
     cell: { x: 0, y: 0 },
@@ -54,7 +57,7 @@ test("a monitor lands on the desk that is already in the room", () => {
 
 test("a chair tucks in front of the desk rather than beside it", () => {
   const desk = place(DESK, { x: 0, y: 0 });
-  const placement = findPlacement([desk], getAsset(CHAIR_ASSET));
+  const placement = findPlacement([desk], art(CHAIR));
 
   // Desk is 8 wide and 4 deep, so a 4-wide chair centres at x=2, y=4.
   assert.deepEqual(placement, { cell: { x: 2, y: 4 }, surface: "floor" });
@@ -64,14 +67,14 @@ test("two floor items cannot share tiles", () => {
   const desk = place(DESK, { x: 0, y: 0 });
 
   assert.equal(
-    canPlace([desk], getAsset(CHAIR_ASSET), {
+    canPlace([desk], art(CHAIR), {
       cell: { x: 0, y: 0 },
       surface: "floor",
     }),
     false,
   );
   assert.equal(
-    canPlace([desk], getAsset(CHAIR_ASSET), {
+    canPlace([desk], art(CHAIR), {
       cell: { x: 0, y: 4 },
       surface: "floor",
     }),
@@ -83,7 +86,7 @@ test("a rug lies flat, so other items may stand on it", () => {
   const rug = place("rug-woven", { x: 0, y: 0 });
 
   assert.equal(
-    canPlace([rug], getAsset(CHAIR_ASSET), {
+    canPlace([rug], art(CHAIR), {
       cell: { x: 1, y: 1 },
       surface: "floor",
     }),
@@ -96,7 +99,7 @@ test("a desk item must stay within its desk", () => {
   const onDesk = { surface: "desk" as const, hostId: desk.instanceId };
 
   assert.equal(
-    canPlace([desk], getAsset(MONITOR_ASSET), {
+    canPlace([desk], art(MONITOR), {
       cell: { x: 2, y: 1 },
       ...onDesk,
     }),
@@ -104,14 +107,14 @@ test("a desk item must stay within its desk", () => {
   );
   // The desk ends at x=8, so a 3-wide monitor cannot start at x=6.
   assert.equal(
-    canPlace([desk], getAsset(MONITOR_ASSET), {
+    canPlace([desk], art(MONITOR), {
       cell: { x: 6, y: 0 },
       ...onDesk,
     }),
     false,
   );
   assert.equal(
-    canPlace([desk], getAsset(MONITOR_ASSET), {
+    canPlace([desk], art(MONITOR), {
       cell: { x: 0, y: 4 },
       ...onDesk,
     }),
@@ -121,11 +124,11 @@ test("a desk item must stay within its desk", () => {
 
 test("a monitor and a lamp leave most of the desk free", () => {
   const desk = place(DESK, { x: 0, y: 0 });
-  const surface = getAsset(DESK_ASSET).deskSurface;
+  const surface = art(DESK).deskSurface;
   assert.ok(surface);
 
-  const monitor = getAsset(MONITOR_ASSET).footprint;
-  const lamp = getAsset(LAMP_ASSET).footprint;
+  const monitor = art(MONITOR).footprint;
+  const lamp = art(LAMP).footprint;
   const slots = surface.footprint.w * surface.footprint.d;
   const taken = monitor.w * monitor.d + lamp.w * lamp.d;
 
@@ -135,7 +138,7 @@ test("a monitor and a lamp leave most of the desk free", () => {
   // Both still fit side by side, back row.
   const onDesk = { surface: "desk" as const, hostId: desk.instanceId };
   assert.equal(
-    canPlace([desk], getAsset(MONITOR_ASSET), {
+    canPlace([desk], art(MONITOR), {
       cell: { x: 0, y: 0 },
       ...onDesk,
     }),
@@ -143,7 +146,7 @@ test("a monitor and a lamp leave most of the desk free", () => {
   );
   const withMonitor = [desk, place(MONITOR, { x: 0, y: 0 }, desk.instanceId)];
   assert.equal(
-    canPlace(withMonitor, getAsset(LAMP_ASSET), {
+    canPlace(withMonitor, art(LAMP), {
       cell: { x: 3, y: 0 },
       ...onDesk,
     }),
@@ -155,7 +158,7 @@ test("a desk item needs a host that exists", () => {
   const desk = place(DESK, { x: 0, y: 0 });
 
   assert.equal(
-    canPlace([desk], getAsset(MONITOR_ASSET), {
+    canPlace([desk], art(MONITOR), {
       cell: { x: 0, y: 0 },
       surface: "desk",
       hostId: "nope",
@@ -196,7 +199,7 @@ test("a floor item nearer the camera draws over a desk and everything on it", ()
 
 test("the room fills up and eventually refuses another desk", () => {
   const items: PlacedItem[] = [];
-  const asset = getAsset(DESK_ASSET);
+  const asset = art(DESK);
 
   for (let attempt = 0; attempt < 100; attempt++) {
     const placement = findPlacement(items, asset);
@@ -225,7 +228,7 @@ test("the room fills up and eventually refuses another desk", () => {
 });
 
 test("the first desk lands in the middle of the room, not in a corner", () => {
-  const placement = findPlacement([], getAsset(DESK_ASSET));
+  const placement = findPlacement([], art(DESK));
   assert.ok(placement);
 
   // An 8x4 desk centred in a 24x24 room.

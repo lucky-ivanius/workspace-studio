@@ -1,60 +1,219 @@
 {
   "source": "https://strapi.monis.rent/api",
   "syncedAt": "2026-10-01T17:19:43.552Z",
+  "studio": {
+    "drawings": [
+      {
+        "id": "monitor-24-fhd",
+        "footprint": {
+          "w": 3,
+          "d": 1
+        },
+        "heightCm": 45,
+        "surface": "desk"
+      },
+      {
+        "id": "monitor-27-4k",
+        "footprint": {
+          "w": 3,
+          "d": 1
+        },
+        "heightCm": 50,
+        "surface": "desk"
+      },
+      {
+        "id": "monitor-34-ultrawide",
+        "footprint": {
+          "w": 4,
+          "d": 1
+        },
+        "heightCm": 48,
+        "surface": "desk"
+      },
+      {
+        "id": "lamp-smart-led",
+        "footprint": {
+          "w": 1,
+          "d": 1
+        },
+        "heightCm": 45,
+        "surface": "desk"
+      },
+      {
+        "id": "keyboard-mx",
+        "footprint": {
+          "w": 2,
+          "d": 1
+        },
+        "heightCm": 3,
+        "surface": "desk"
+      },
+      {
+        "id": "coffee-machine",
+        "footprint": {
+          "w": 1,
+          "d": 2
+        },
+        "heightCm": 33,
+        "surface": "desk"
+      },
+      {
+        "id": "speaker-marshall",
+        "footprint": {
+          "w": 1,
+          "d": 1
+        },
+        "heightCm": 32,
+        "surface": "desk"
+      },
+      {
+        "id": "generic-screen",
+        "footprint": {
+          "w": 3,
+          "d": 1
+        },
+        "heightCm": 45,
+        "surface": "desk"
+      },
+      {
+        "id": "generic-desk-small",
+        "footprint": {
+          "w": 2,
+          "d": 1
+        },
+        "heightCm": 8,
+        "surface": "desk"
+      },
+      {
+        "id": "generic-desk-medium",
+        "footprint": {
+          "w": 2,
+          "d": 2
+        },
+        "heightCm": 25,
+        "surface": "desk"
+      },
+      {
+        "id": "generic-desk-tall",
+        "footprint": {
+          "w": 1,
+          "d": 1
+        },
+        "heightCm": 35,
+        "surface": "desk"
+      },
+      {
+        "id": "generic-floor-small",
+        "footprint": {
+          "w": 2,
+          "d": 2
+        },
+        "heightCm": 60,
+        "surface": "floor"
+      },
+      {
+        "id": "generic-floor-large",
+        "footprint": {
+          "w": 4,
+          "d": 4
+        },
+        "heightCm": 110,
+        "surface": "floor"
+      },
+      {
+        "id": "generic-floor-wide",
+        "footprint": {
+          "w": 6,
+          "d": 3
+        },
+        "heightCm": 50,
+        "surface": "floor"
+      }
+    ],
+    "fallbackDrawing": "generic-floor-small"
+  },
   "categories": [
     {
       "id": "monitors",
       "name": "Monitors",
       "description": "Rent monitors from $5/week. Choose from 4K USB-C displays, 5K Apple Studio screens, and curved gaming monitors. Flexible rentals for every setup with instant delivery.",
-      "sortOrder": 0
+      "sortOrder": 0,
+      "studio": {
+        "generic": "generic-screen"
+      }
     },
     {
       "id": "office-accessories",
       "name": "Office Accessories",
       "description": "Rent mice, keyboards, hubs, webcams, cable extension and stands from $0.50/week. Flexible, high-quality setups delivered instantly to your door.",
-      "sortOrder": 10
+      "sortOrder": 10,
+      "studio": {
+        "generic": "generic-desk-small"
+      }
     },
     {
       "id": "smart-home",
       "name": "Smart Home",
       "description": "Create the perfect smart home in Bali. Rent air purifiers, coffee makers, and Starlink connectivity from $3/week. Flexible, instant, and hassle-free.",
-      "sortOrder": 11
+      "sortOrder": 11,
+      "studio": {
+        "generic": "generic-floor-small"
+      }
     },
     {
       "id": "furniture",
       "name": "Furniture",
       "description": "Rent ergonomic office furniture from $3/week. Choose electric adjustable desks, 4D mesh chairs, and smart LED lamps. Flexible rentals for your workspace.",
-      "sortOrder": 20
+      "sortOrder": 20,
+      "studio": {
+        "generic": "generic-floor-large"
+      }
     },
     {
       "id": "computer",
       "name": "Computer",
       "description": "Rent computers from $16/week. Choose Apple Mac Studio, Mac Mini M4, or Windows laptops. Pro M4 & M1 Max chips with instant delivery. Start your project today!",
-      "sortOrder": 40
+      "sortOrder": 40,
+      "studio": {
+        "generic": "generic-desk-medium"
+      }
     },
     {
       "id": "gaming",
       "name": "Gaming",
       "description": "Rent PS5, Nintendo Switch 2, and 4K gaming monitors in Bali. Immersive setups with flexible rental plans and instant delivery. Play your way today!",
-      "sortOrder": 50
+      "sortOrder": 50,
+      "studio": {
+        "generic": "generic-desk-medium"
+      }
     },
     {
       "id": "audio-and-video",
       "name": "Audio & Video",
       "description": "Rent professional audio & video gear in Bali. From podcast mics and DJ controllers to home projectors and speakers. Flexible plans, instant delivery.",
-      "sortOrder": 60
+      "sortOrder": 60,
+      "studio": {
+        "generic": "generic-desk-tall"
+      }
     },
     {
       "id": "health-and-fitness",
       "name": "Health & Fitness",
       "description": "Build your perfect home gym in Bali. Rent adjustable dumbbells, treadmills, exercise bikes, and recovery gear. Flexible plans with instant delivery.",
-      "sortOrder": 70
+      "sortOrder": 70,
+      "studio": {
+        "generic": "generic-floor-wide"
+      }
     }
   ],
   "products": [
     {
       "id": "24-full-hd-office-monitor-a24i-2026",
       "slug": "24-full-hd-office-monitor-a24i-2026",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-24-fhd"
+      },
       "name": "24\" Full HD Office Monitor A24i 2026",
       "brand": "Xiaomi",
       "summary": "Xiaomi Monitor A24i 2026, 23.8″ Fast IPS Monitor, 1920 × 1080 FHD, 144 Hz Refresh Rate, 300 Nits Brightness, 1500:1 Contrast Ratio, 99% sRGB, 8-bit (6-bit + FRC), 6 ms Response Time, HDMI 2.0, DisplayPort 1.4, Viewing Angle 178°, Low Blue Light Mode, VESA 75 × 75 mm, Tilt Adjustment 5°/15°.",
@@ -158,6 +317,9 @@
     {
       "id": "apple-mac-book-neo",
       "slug": "apple-mac-book-neo",
+      "studio": {
+        "placeable": true
+      },
       "name": "Apple MacBook Neo",
       "brand": "Apple",
       "summary": "13″ Liquid Retina display, Apple A18 Pro chip, 8GB unified memory, 256GB SSD, Magic Keyboard (EN-US), Wi-Fi 6E, Bluetooth 6.0, 1080p FaceTime HD camera, up to 16 hours battery life, ultra-light aluminum design",
@@ -263,6 +425,16 @@
     {
       "id": "ergonomic-office-chair",
       "slug": "ergonomic-office-chair",
+      "studio": {
+        "placeable": true,
+        "footprint": {
+          "w": 4,
+          "d": 4
+        },
+        "heightCm": 120,
+        "surface": "floor",
+        "seat": true
+      },
       "name": "Ergonomic Office Chair",
       "brand": "Fantech",
       "summary": "Breathable mesh back, high-density molded foam seat, 4D adjustable armrests, adjustable headrest, height-adjustable lumbar support, multi-angle reclining backrest with lock, retractable leg rest, smooth 60mm silent casters, reinforced 5-star metal base, built-in coat hanger.",
@@ -345,6 +517,9 @@
     {
       "id": "podcast-microphone-kit",
       "slug": "podcast-microphone-kit",
+      "studio": {
+        "placeable": true
+      },
       "name": "Podcast Microphone Kit",
       "brand": "Shure",
       "summary": "Shure MV7/MV7+ Podcast Kit Bundle, XLR, USB, 3.5mm monitor output, dynamic sound, 50 to 16,000 Hz, XLR -55 dBV/Pa (1.78 mV) at 1 kHz, Shure Plus MOTIV app.",
@@ -442,6 +617,9 @@
     {
       "id": "international-power-strip",
       "slug": "international-power-strip",
+      "studio": {
+        "placeable": false
+      },
       "name": "Smart Power Strip 3",
       "brand": "Xiaomi",
       "summary": "Your ultimate connectivity companion incl. European (type F), American without ground (type A), Australian (type I), 3x USB ports with 2.0 m in length.",
@@ -510,6 +688,9 @@
     {
       "id": "play-station-5",
       "slug": "play-station-5",
+      "studio": {
+        "placeable": true
+      },
       "name": "Sony PlayStation®5",
       "brand": "Sony",
       "summary": "Resolution up to 8K, 4K 120, HDR-ready, 1TB SSD, disc port, DualSense wireless controller, adaptive triggers, haptic feedback, built-in microphone.",
@@ -608,6 +789,9 @@
     {
       "id": "office-windows-laptop",
       "slug": "office-windows-laptop",
+      "studio": {
+        "placeable": true
+      },
       "name": "15\" Office Windows Laptop",
       "brand": "Xiaomi",
       "summary": "11th Gen Intel® Core™ i3, 8 GB RAM, 256 GB SSD, Windows 10 Home, Long battery life (30+ hours), Large touch pane.",
@@ -700,6 +884,10 @@
     {
       "id": "27-4-k-multimedia-monitor",
       "slug": "27-4-k-multimedia-monitor",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-27-4k"
+      },
       "name": "27\" 4K Multimedia Monitor",
       "brand": "Xiaomi",
       "summary": "Redmi 27\" monitor with USB-C or HDMI connection, 350 Nits, 4K (3840×2160) resolution, 100% sRGB, 95% DCI-P3, HDR support, IPS panel, 60Hz refresh rate, 6ms response time, VESA mount.",
@@ -803,6 +991,9 @@
     {
       "id": "34-4-k-curved-monitor-180-hz",
       "slug": "34-4-k-curved-monitor-180-hz",
+      "studio": {
+        "placeable": true
+      },
       "name": "34\" 4K Gaming Monitor",
       "brand": "Xiaomi",
       "summary": "Xiaomi Mi Curved 34\" Gaming Monitor at 180Hz, WQHD 3440 × 1440, 350 Nits, DCI-P3 95%, sRGB 100%, 1ms response time.",
@@ -898,6 +1089,10 @@
     {
       "id": "apple-studio-display",
       "slug": "apple-studio-display",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-27-4k"
+      },
       "name": "27\" 5K Apple Studio Display",
       "brand": "Apple",
       "summary": "27-inch 5K Retina display (5120 by 2880 pixels), 600 nits brightness, P3 wide color gamut, True Tone technology, Tilt adjustable stand, 12MP Ultra-Wide camera with Center Stage, six-speaker sound system, studio-quality three-microphone, 1x Thunderbolt 3 port (up to 96W power delivery), 3x USB-C ports.",
@@ -1005,6 +1200,9 @@
     {
       "id": "apple-mac-mini-m4",
       "slug": "apple-mac-mini-m4",
+      "studio": {
+        "placeable": true
+      },
       "name": "Apple Mac Mini M4",
       "brand": "Apple",
       "summary": "Apple M4 with 10-core CPU, 10-core GPU, 16-core Neural Engine, 16GB unified memory, 256GB SSD storage, Gigabit Ethernet, 2x Thunderbolt 4 ports, HDMI port, two USB-A ports, and a headphone jack.",
@@ -1096,6 +1294,16 @@
     {
       "id": "electrical-adjustable-desk",
       "slug": "electrical-adjustable-desk",
+      "studio": {
+        "placeable": true,
+        "footprint": {
+          "w": 8,
+          "d": 4
+        },
+        "heightCm": 75,
+        "surface": "floor",
+        "surfaceHeightCm": 75
+      },
       "name": "Electrical Adjustable Desk",
       "brand": "Fantech",
       "summary": "Electric height adjustment (70-118cm), smooth and quiet motor, spacious, durable tabletop, ergonomic sit-stand design, improves posture and circulation, available in three sizes.",
@@ -1179,6 +1387,9 @@
     {
       "id": "microphone-boom-arm",
       "slug": "microphone-boom-arm",
+      "studio": {
+        "placeable": true
+      },
       "name": "Microphone Boom Arm",
       "brand": "Shure",
       "summary": "Heavy-duty suspension boom arm, 800 mm reach, 1 kg load capacity, full-range motion, integrated cable management, table clamp mount, matte black finish",
@@ -1261,6 +1472,9 @@
     {
       "id": "nintendo-switch-2",
       "slug": "nintendo-switch-2",
+      "studio": {
+        "placeable": true
+      },
       "name": "Nintendo Switch 2",
       "brand": "Nintendo",
       "summary": "7\" OLED display, detachable Joy-Con controllers, preinstalled Mario Kart World, TV & handheld mode, multiplayer ready, 256GB storage, HDMI & USB-C included.",
@@ -1365,6 +1579,9 @@
     {
       "id": "padel-racket",
       "slug": "padel-racket",
+      "studio": {
+        "placeable": false
+      },
       "name": "Padel Racket",
       "brand": "Decathlon",
       "summary": "Premium padel racket for beginners to advanced players, lightweight construction, optimized control and power, comfortable grip, ideal for casual games, training sessions, and competitive matches. Choose the perfect racket based on your playing level.",
@@ -1436,6 +1653,9 @@
     {
       "id": "apple-mac-studio",
       "slug": "apple-mac-studio",
+      "studio": {
+        "placeable": true
+      },
       "name": "Apple Mac Studio",
       "brand": "Apple",
       "summary": "Apple M1 Max with 10‑core CPU, 24‑core GPU, 16‑core Neural Engine, 32GB unified memory, 512GB SSD storage, or Apple M2 Ultra with 24-core CPU, 60-core GPU, 32-core Neural Engine, 64GB unified memory, 1TB SSD storage. Two USB-C ports (front), one SDXC card slot, four (M1 Max) or six (M2 Ultra) Thunderbolt 4 ports, two USB-A ports, one HDMI port, one 10Gb Ethernet port, one 3.5mm headphone jack.",
@@ -1534,6 +1754,9 @@
     {
       "id": "apple-mac-mini-m2-new",
       "slug": "apple-mac-mini-m2-new",
+      "studio": {
+        "placeable": true
+      },
       "name": "Apple Mac Mini M2",
       "brand": "Apple",
       "summary": "Apple M2 with 8-core CPU, 10-core GPU, 16‑core Neural Engine, 8/16GB unified memory, 256/512GB SSD storage, Gigabit Ethernet, 2x Thunderbolt 4 ports, HDMI port, two USB-A ports, headphone jack.",
@@ -1632,6 +1855,9 @@
     {
       "id": "ps-5-games",
       "slug": "ps-5-games",
+      "studio": {
+        "placeable": false
+      },
       "name": "PS5 Disc Games",
       "brand": null,
       "summary": "Featuring NBA 2K25, Call of Duty Black Ops 6, EA Sports FC 25, Gran Turismo 7, Grand Theft Auto V, Minecraft and more.",
@@ -1727,6 +1953,9 @@
     {
       "id": "google-tv-home-projector",
       "slug": "google-tv-home-projector",
+      "studio": {
+        "placeable": true
+      },
       "name": "Google TV Home Projector",
       "brand": "Wanbo",
       "summary": "1200 ANSI Lumens, Full HD 1080p native resolution, 4K online content support, HDR10, MEMC motion enhancement, Google TV with 10,000+ apps, 20W bass speaker, ASA 3.0 automation, HDMI 2.0, PixelPro 5.0 sealed optical engine, VRR, 32dB low noise",
@@ -1831,6 +2060,10 @@
     {
       "id": "marshall-woburn-ii-bluetooth",
       "slug": "marshall-woburn-ii-bluetooth",
+      "studio": {
+        "placeable": true,
+        "art": "speaker-marshall"
+      },
       "name": "Marshall Woburn III Bluetooth",
       "brand": "Marshall",
       "summary": "Bluetooth 5.0, 1\" tweeters and dual 5.25\" subwoofers, powered by class D amplifiers, RCA and 3.5mm inputs, analog controls for fine-tuning bass, treble, and volume, 110 watts of power.",
@@ -1921,6 +2154,9 @@
     {
       "id": "ps-5-wireless-controller",
       "slug": "ps-5-wireless-controller",
+      "studio": {
+        "placeable": false
+      },
       "name": "PS5 Wireless Controller",
       "brand": "Sony",
       "summary": "1x DualSense™ wireless controller, haptic feedback, adaptive triggers, built-in microphones, signature comfort.",
@@ -1989,6 +2225,10 @@
     {
       "id": "27-work-monitor-a27i",
       "slug": "27-work-monitor-a27i",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-27-4k"
+      },
       "name": "27\" Full HD Office Monitor A27i",
       "brand": "Xiaomi",
       "summary": "Xiaomi Monitor 27\" IPS screen at 100Hz, 1920 x 1080 FHD, 100% sRGB, ΔE<2, 8 bit, 250 Nits, 6ms response time, VESA mount.",
@@ -2077,6 +2317,9 @@
     {
       "id": "switch-2-controller-pack",
       "slug": "switch-2-controller-pack",
+      "studio": {
+        "placeable": false
+      },
       "name": "Switch 2 Controller Pack",
       "brand": null,
       "summary": "2x Joy-Con controller pairs (Light Blue + Red), 2x Powerwave multifunctional grips, 1 Powerwave quad charging stand.",
@@ -2145,6 +2388,9 @@
     {
       "id": "magnetic-whiteboard",
       "slug": "magnetic-whiteboard",
+      "studio": {
+        "placeable": true
+      },
       "name": "Magnetic Whiteboard",
       "brand": null,
       "summary": "Magnetic flip chart whiteboard in 60x90 cm, flip chart papers, magnets, and markers incl. whiteboard eraser are available as purchase add-on.",
@@ -2206,6 +2452,9 @@
     {
       "id": "pioneer-dj-controller",
       "slug": "pioneer-dj-controller",
+      "studio": {
+        "placeable": true
+      },
       "name": "Pioneer DJ Controller",
       "brand": "Pioneer",
       "summary": "2-channel DJ controller, USB-C powered, rekordbox & Serato compatible, Smart Mixing features, Bluetooth audio input, compact and travel-friendly.",
@@ -2309,6 +2558,10 @@
     {
       "id": "smart-led-desk-lamp-1-s",
       "slug": "smart-led-desk-lamp-1-s",
+      "studio": {
+        "placeable": true,
+        "art": "lamp-smart-led"
+      },
       "name": "Smart LED Desk Lamp 1S",
       "brand": "Xiaomi",
       "summary": "520 lm luminous flux, Ra 90 high color rendering, 2600–5000 K color range, 4 lighting modes (Reading/Computer/Child/Focus), flicker‑free dimming, Wi‑Fi smart control, Google Assistant/Alexa/Siri voice support, 25,000 h lifespan, 9 W power, 2.4 GHz Wi‑Fi.",
@@ -2413,6 +2666,16 @@
     {
       "id": "adjustable-wooden-desk",
       "slug": "adjustable-wooden-desk",
+      "studio": {
+        "placeable": true,
+        "footprint": {
+          "w": 6,
+          "d": 4
+        },
+        "heightCm": 72,
+        "surface": "floor",
+        "surfaceHeightCm": 72
+      },
       "name": "Mechanical Adjustable Desk",
       "brand": "Ikea",
       "summary": "Effortlessly adjust the height from 70-120cm, no electricity needed, available in two sizes: 120x70cm, 160x70cm",
@@ -2488,6 +2751,9 @@
     {
       "id": "standing-whiteboard-120x240",
       "slug": "standing-whiteboard-120x240",
+      "studio": {
+        "placeable": true
+      },
       "name": "Standing Whiteboard",
       "brand": null,
       "summary": "Bigger standing whiteboards in 120 x 180 cm and more size variants, markers, incl. whiteboard eraser, are available as a purchase add-on.",
@@ -2556,6 +2822,10 @@
     {
       "id": "logitech-mx-keyboard",
       "slug": "logitech-mx-keyboard",
+      "studio": {
+        "placeable": true,
+        "art": "keyboard-mx"
+      },
       "name": "Logitech MX Keyboard",
       "brand": "Logitech",
       "summary": "Up to 10 meters wireless range, Easy-Switch™ keys to work on up to 3 computers, supported by all operating systems, up to 5-month battery live.",
@@ -2624,6 +2894,9 @@
     {
       "id": "starlink-kit-incl-plan",
       "slug": "starlink-kit-incl-plan",
+      "studio": {
+        "placeable": true
+      },
       "name": "Starlink Kit (incl. plan)",
       "brand": "Starlink",
       "summary": "Wi-Fi 6 router with dual-band (2.4 GHz/5 GHz) support, satellite antenna with motorized auto-adjustment, throughput speed: up to 220 Mbps, latency: 20-40 ms, IPv4 and IPv6 support, AES encryption, power input: 100-240V AC, weather-resistant design (IP65), weight: 4.2 kg, plug-and-go setup, requires clear sky view.",
@@ -2714,6 +2987,10 @@
     {
       "id": "hue-signe-gradient-lamp",
       "slug": "hue-signe-gradient-lamp",
+      "studio": {
+        "placeable": true,
+        "art": "lamp-smart-led"
+      },
       "name": "Hue Signe Gradient Lamp",
       "brand": "Philips Hue",
       "summary": "Multicolour gradient smart light, 730 – 1,040 lm brightness, 2000 – 6500 K colour range, Bluetooth & Zigbee, >25,000 h LED lifespan, IP20, aluminium body, dimmable via app/switch, voice control (Alexa/Google/Siri), 100–240 V, 2 m cable, 55.3 cm height, 0.72 kg.",
@@ -2811,6 +3088,10 @@
     {
       "id": "nespresso-essenza-coffee-machine",
       "slug": "nespresso-essenza-coffee-machine",
+      "studio": {
+        "placeable": true,
+        "art": "coffee-machine"
+      },
       "name": "Nespresso Essenza Coffee Machine",
       "brand": "Nespresso",
       "summary": "19-bar pressure pump, 0.6-liter removable water tank, 1260W power, 2 programmable cup sizes (Espresso & Lungo), Fast 25-second heat-up, Energy-saving auto shut-off, Compact & minimalist design.",
@@ -2901,6 +3182,10 @@
     {
       "id": "bosch-coffee-maker",
       "slug": "bosch-coffee-maker",
+      "studio": {
+        "placeable": true,
+        "art": "coffee-machine"
+      },
       "name": "Bosch Coffee Maker",
       "brand": "Bosch",
       "summary": "Filter coffee maker, 1200 W power, 1.4 L water tank (10–15 cups), removable water tank, drip‑stop system, auto‑off after 40 min, swing‑out filter holder, glass carafe with aroma protection, easy‑clean design, black finish.",
@@ -2976,6 +3261,10 @@
     {
       "id": "32-4-k-ergonomic-monitor",
       "slug": "32-4-k-ergonomic-monitor",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-34-ultrawide"
+      },
       "name": "32\" QHD Ergonomic Monitor",
       "brand": "LG",
       "summary": "LG Ergo Fine Art 32\" QHD (2560 x 1440) IPS screen, 350 cd/m², sRGB 99%, HDR10, 5ms, 48-75Hz, 1x USB-C (supports data, display, and power delivery up to 96W), 2x HDMI ports, 1x DisplayPort, 2x USB 3.0 ports, Ergo stand, integrated speakers, VESA mount.",
@@ -3079,6 +3368,10 @@
     {
       "id": "24-full-hd-office-monitor-a24i-2",
       "slug": "24-full-hd-office-monitor-a24i-2",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-24-fhd"
+      },
       "name": "24\" Full HD Office Monitor A24i",
       "brand": "Xiaomi",
       "summary": "Xiaomi Mi 23.8 Desktop Monitor A24i at 100 Hz, IPS Monitor, 1920 x 1080 FHD, 250 Nits, 99% sRGB, 6ms response time, HDMI, Viewing Angle 178°, Ultra-thin (7.5 mm at the thinnest part).",
@@ -3174,6 +3467,9 @@
     {
       "id": "foldable-walk-pad",
       "slug": "foldable-walk-pad",
+      "studio": {
+        "placeable": true
+      },
       "name": "Foldable Walking Pad R2 Pro",
       "brand": "Kingsmith",
       "summary": "Kingsmith Walking Pad R2 Pro with a speed of 0.5–12 km/h, Bluetooth, Remote control, PC display, 918W DC low noise brushless motor.",
@@ -3269,6 +3565,9 @@
     {
       "id": "red-light-therapy-panel",
       "slug": "red-light-therapy-panel",
+      "studio": {
+        "placeable": true
+      },
       "name": "Red Light Therapy Panel",
       "brand": null,
       "summary": "1500W output, 180 dual-chip LEDs, 5 wavelengths (630nm, 660nm, 810nm, 830nm, 850nm), >190mW/cm² irradiance, 30° convex lens angle, zero EMF, digital display, RED & NIR control, timer function, wall-mountable, full-body coverage, 100,000h lifespan, 35.8×7.7×2.4\", 14 lbs.",
@@ -3359,6 +3658,9 @@
     {
       "id": "home-spinning-bike-yesoul-S3",
       "slug": "home-spinning-bike-yesoul-S3",
+      "studio": {
+        "placeable": true
+      },
       "name": "Home Spinning Bike",
       "brand": "Yesoul",
       "summary": "Yesoul Smart Exercise Bike S3 with magnetic resistance, Bluetooth and maximum weight of 120kg.",
@@ -3442,6 +3744,9 @@
     {
       "id": "adjustable-dumbbell-weight-set",
       "slug": "adjustable-dumbbell-weight-set",
+      "studio": {
+        "placeable": true
+      },
       "name": "Adjustable Dumbbell Weight Set",
       "brand": null,
       "summary": "Up to 50kg adjustable dumbbells and barbells, rubber grips, carrying case for easy transport and storage.",
@@ -3503,6 +3808,9 @@
     {
       "id": "massage-gun",
       "slug": "massage-gun",
+      "studio": {
+        "placeable": false
+      },
       "name": "Massage Gun",
       "brand": "Xiaomi",
       "summary": "Xiaomi Massage Gun: 3 Speed Levels (1,800 RPM, 2,400 RPM, 3,200 RPM), 5 Interchangeable Massage Heads, Quiet Motor (Noise Level: ≤45 dB), 2,600 mAh Lithium-Ion Battery, Up to 5 Hours of Battery Life, 10mm Deep Tissue Penetration, 570g Lightweight Design, Type-C Charging Port, Anti-Slip Ergonomic Grip.",
@@ -3597,6 +3905,10 @@
     {
       "id": "full-hd-office-24",
       "slug": "full-hd-office-24",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-24-fhd"
+      },
       "name": "24\" Full HD Office Monitor 1C",
       "brand": "Xiaomi",
       "summary": "Xiaomi Mi 23.8 Monitor 1C at 75 Hz, 1920 x 1080 FHD, 250 Nits, 99& sRGB, 6ms response time.",
@@ -3678,6 +3990,10 @@
     {
       "id": "4k-grading-monitor-27",
       "slug": "4k-grading-monitor-27",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-27-4k"
+      },
       "name": "27\" 4K+ Grading Monitor",
       "brand": "Xiaomi",
       "summary": "Xiaomi 27\" monitor with USB-C connection and charging, 400 Nits, 4K (3840×2160) resolution, 99% DCI-P3 Adobe RGB, Cinematic Wide Color Gamut, PANTONE Validated, 6ms response time, VESA mount.",
@@ -3774,6 +4090,9 @@
     {
       "id": "logitech-mx-master-mouse-s3",
       "slug": "logitech-mx-master-mouse-s3",
+      "studio": {
+        "placeable": false
+      },
       "name": "Logitech MX Master Mouse S3",
       "brand": "Logitech",
       "summary": "Compatible with Windows and macOS, wireless connection, 8,000 DPI Darkfield sensor up to 8,000 DPI, ergonomic design, 70 days with one charge.",
@@ -3856,6 +4175,10 @@
     {
       "id": "27-work-monitor-mi-d",
       "slug": "27-work-monitor-mi-d",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-27-4k"
+      },
       "name": "27\" Full HD Office Monitor MiD",
       "brand": "Xiaomi",
       "summary": "Xiaomi Monitor MiD, 27-inch screen at 75 Hz, 1920 x 1080 FHD, 100% sRGB, 8 bit, 300 Nits, 6ms response time.",
@@ -3937,6 +4260,9 @@
     {
       "id": "6-in-1-converter-hub",
       "slug": "6-in-1-converter-hub",
+      "studio": {
+        "placeable": false
+      },
       "name": "6-in-1 Converter Hub",
       "brand": "Ugreen",
       "summary": "This all-in-one device features USB-C, USB 3.0, 4K HDMI, and SD card slots, offering a sleek solution for all your connectivity needs.",
@@ -3998,6 +4324,9 @@
     {
       "id": "logitech-4-k-webcam",
       "slug": "logitech-4-k-webcam",
+      "studio": {
+        "placeable": false
+      },
       "name": "Logitech 4K Webcam",
       "brand": "Logitech",
       "summary": "Logitech Brio 4K 5x HD zoom, Integrated microphone, 4K Ultra HD video at 30-60fps, noise canceling, adjustable field of view, tripod mount.",
@@ -4088,6 +4417,9 @@
     {
       "id": "43-smart-tv-4-k",
       "slug": "43-smart-tv-4-k",
+      "studio": {
+        "placeable": true
+      },
       "name": "43\" Smart TV 4K",
       "brand": "Samsung",
       "summary": "4K UHD (3840 x 2160 pixels), HDR10+ technology, Dolby Digital Plus, Voice control (Alexa, Google Assistant, Bixby), Wi-Fi, Bluetooth, Slim design, VESA mount compatible, HDMI (x3), USB (x1), Ethernet, Optical audio out, RF input for TV tuners.",
@@ -4165,6 +4497,16 @@
     {
       "id": "dual-motor-electric-standing-desk",
       "slug": "dual-motor-electric-standing-desk",
+      "studio": {
+        "placeable": true,
+        "footprint": {
+          "w": 10,
+          "d": 4
+        },
+        "heightCm": 75,
+        "surface": "floor",
+        "surfaceHeightCm": 75
+      },
       "name": "Dual-Motor Electric Standing Desk",
       "brand": "Monis",
       "summary": "Dual-motor electric height adjustment, 3-stage lifting columns, up to 120 kg load capacity, 36 mm/s lifting speed, heavy-duty steel frame, 18 mm scratch-resistant tabletop, professional sit-stand design, available in 120×70, 140×70 and 160×70 cm.",
@@ -4255,6 +4597,9 @@
     {
       "id": "smart-dehumidifier-lite",
       "slug": "smart-dehumidifier-lite",
+      "studio": {
+        "placeable": true
+      },
       "name": "Smart Dehumidifier Lite",
       "brand": "Xiaomi",
       "summary": "13 L/day dehumidification, 3.0 L water tank, smart Wi‑Fi control, 38 dB quiet mode, clothes drying mode, sleep mode, 140 m³/h airflow, automatic shut‑off when full, R290 refrigerant, 190 W rated power",
@@ -4337,6 +4682,9 @@
     {
       "id": "smart-tv-4-k-50-grom-rent",
       "slug": "smart-tv-4-k-50-grom-rent",
+      "studio": {
+        "placeable": true
+      },
       "name": "50'' Smart TV 4K",
       "brand": "Samsung",
       "summary": "4K UHD (3840 x 2160 pixels), HDR technology, Dolby Digital Plus, Voice control, Wi-Fi 5, Bluetooth 5.2, Slim design, VESA mount compatible, Optical audio out, Ethernet, RF input for TV tuners.",
@@ -4428,6 +4776,9 @@
     {
       "id": "smart-tv-4-k-55",
       "slug": "smart-tv-4-k-55",
+      "studio": {
+        "placeable": true
+      },
       "name": "55'' Smart TV 4K",
       "brand": "Samsung",
       "summary": "4K UHD (3840 x 2160 pixels), HDR technology, Dolby Digital Plus, Voice control, Wi-Fi 5, Bluetooth 5.2, Slim design, VESA mount compatible, Optical audio out, Ethernet, RF input for TV tuners.",
@@ -4512,6 +4863,9 @@
     {
       "id": "smart-tv-4-k-65",
       "slug": "smart-tv-4-k-65",
+      "studio": {
+        "placeable": true
+      },
       "name": "65'' Smart TV 4K",
       "brand": "Samsung",
       "summary": "4K UHD (3840 x 2160 pixels), HDR technology, Dolby Digital Plus, Voice control, Wi-Fi 5, Bluetooth 5.2, Slim design, VESA mount compatible, Optical audio out, Ethernet, RF input for TV tuners.",
@@ -4596,6 +4950,9 @@
     {
       "id": "smart-air-purifier",
       "slug": "smart-air-purifier",
+      "studio": {
+        "placeable": true
+      },
       "name": "Smart Air Purifier",
       "brand": "Xiaomi",
       "summary": "50m² coverage, 5-layer filtration, UV-LED sterilization, CADR 443 m³/h, 32dB sleep mode, smart app control, real-time air quality display, 40W power, 5.2kg, Xiaomi Home compatible",
@@ -4679,6 +5036,9 @@
     {
       "id": "sony-play-station-5",
       "slug": "sony-play-station-5",
+      "studio": {
+        "placeable": true
+      },
       "name": "Sony PlayStation 5",
       "brand": "Sony",
       "summary": "Resolution up to 8K, 4K 120, HDR-ready, 825 GB SSD, 16 GB GDDR6, disc port/digital, DualSense wireless controller, adaptive triggers, haptic feedback, built-in microphone.",
@@ -4770,6 +5130,15 @@
     {
       "id": "ergonomic-laptop-stand",
       "slug": "ergonomic-laptop-stand",
+      "studio": {
+        "placeable": true,
+        "footprint": {
+          "w": 2,
+          "d": 1
+        },
+        "heightCm": 16,
+        "surface": "desk"
+      },
       "name": "Ergonomic Laptop Stand",
       "brand": null,
       "summary": "With all laptops from 10''-17\", raises and angles a laptop for comfortable and efficient use.",
@@ -4824,9 +5193,12 @@
     {
       "id": "sony-psvr-2-vr-headset",
       "slug": "sony-psvr-2-vr-headset",
+      "studio": {
+        "placeable": false
+      },
       "name": "Sony PSVR2 VR Headset",
       "brand": "Sony",
-      "summary": "Playstation VR2, OLED display, 4K HDR, 4 embedded cameras, eye tracking, Bluetooth® Ver. 5.1​ , USB-C charging, Built-in microphone, 90Hz - 120Hz refresh rate",
+      "summary": "Playstation VR2, OLED display, 4K HDR, 4 embedded cameras, eye tracking, Bluetooth® Ver. 5.1� , USB-C charging, Built-in microphone, 90Hz - 120Hz refresh rate",
       "description": "Experience the next level of immersive gaming with the Sony PSVR2 VR Headset, available for rent now! Designed for the PlayStation 5, this advanced virtual reality headset features 4K HDR visuals, eye-tracking technology, and haptic feedback for a truly interactive experience. Whether you're a gaming enthusiast or simply curious to explore the world of VR, renting the Sony PSVR2 lets you dive into breathtaking virtual worlds without the commitment of purchasing. Rent today and elevate your gaming to new dimensions with Grom Rent in Bali!",
       "categoryIds": ["gaming"],
       "pricePerWeek": 54,
@@ -4881,7 +5253,7 @@
         },
         {
           "label": "CONNECTIVITY",
-          "value": "Bluetooth® Ver. 5.1​, USB-C, Stereo headphone jack"
+          "value": "Bluetooth® Ver. 5.1�, USB-C, Stereo headphone jack"
         },
         {
           "label": "SPACE REQUIREMENTS",
@@ -4908,6 +5280,9 @@
     {
       "id": "adjustable-monitor-stand",
       "slug": "adjustable-monitor-stand",
+      "studio": {
+        "placeable": true
+      },
       "name": "Adjustable Monitor Stand",
       "brand": null,
       "summary": "Adjustable height of 11-18cm, up to 15kg load bearing, ergonomic comfort and storage function compatible with all monitors.",
@@ -4976,6 +5351,9 @@
     {
       "id": "insta360-action-camera",
       "slug": "insta360-action-camera",
+      "studio": {
+        "placeable": false
+      },
       "name": "Insta360 Action Camera",
       "brand": "Insta360",
       "summary": "8K 360° video, dual 1/1.28″ sensors, 72MP photos, 5.7K 60fps recording, replaceable lenses, waterproof up to 15m, AI reframing, FlowState stabilization, Wi-Fi & Bluetooth, ultra-portable action camera",
@@ -5097,6 +5475,9 @@
     {
       "id": "display-docking-station",
       "slug": "display-docking-station",
+      "studio": {
+        "placeable": true
+      },
       "name": "Display Docking Station",
       "brand": null,
       "summary": "DisplayLink triple display dock, 100W USB‑C laptop charging, USB‑C/USB‑A 10 Gbps ports, Gigabit Ethernet, audio I/O, 4K@60Hz & 2.5K monitor support, ABS compact body.",
@@ -5194,6 +5575,9 @@
     {
       "id": "apple-magic-mouse",
       "slug": "apple-magic-mouse",
+      "studio": {
+        "placeable": false
+      },
       "name": "Apple Magic Mouse",
       "brand": "Apple",
       "summary": "Multi-touch surface, wireless connectivity, automatic pairing.",
@@ -5262,6 +5646,9 @@
     {
       "id": "wi-fi-range-extender",
       "slug": "wi-fi-range-extender",
+      "studio": {
+        "placeable": false
+      },
       "name": "WiFi Range Extender",
       "brand": "Xiaomi",
       "summary": "Up to 1200Mbps, 2.5GHz and 5GHz dual-band technology, ethernet port, plug and connect via phone.",
@@ -5344,6 +5731,9 @@
     {
       "id": "apple-magic-trackpad",
       "slug": "apple-magic-trackpad",
+      "studio": {
+        "placeable": false
+      },
       "name": "Apple Magic Trackpad",
       "brand": "Apple",
       "summary": "Multi-Touch Surface, Bluetooth-enabled, Rechargeable, Lightning cable included.",
@@ -5423,6 +5813,10 @@
     {
       "id": "apple-home-pod",
       "slug": "apple-home-pod",
+      "studio": {
+        "placeable": true,
+        "art": "speaker-marshall"
+      },
       "name": "Apple HomePod",
       "brand": "Apple",
       "summary": "Apple HomePod 2nd Gen, high-excursion woofer, five tweeters, spatial audio, Siri voice control, AirPlay 2, Matter & Thread smart home hub, Bluetooth 5.0, Wi-Fi, UWB.",
@@ -5506,6 +5900,9 @@
     {
       "id": "logitech-mx-mouse",
       "slug": "logitech-mx-mouse",
+      "studio": {
+        "placeable": false
+      },
       "name": "Logitech M331 Silent Mouse",
       "brand": "Logitech",
       "summary": "RedDot winning mouse, Logi Bolt USB 2.4 GHz receiver, supports all operating systems.",
@@ -5574,6 +5971,10 @@
     {
       "id": "apple-magic-keyboard",
       "slug": "apple-magic-keyboard",
+      "studio": {
+        "placeable": true,
+        "art": "keyboard-mx"
+      },
       "name": "Apple Magic Keyboard",
       "brand": "Apple",
       "summary": "Touch ID, numeric keypad, wireless connection, Apple silicon, lightning port.",
@@ -5642,6 +6043,9 @@
     {
       "id": "smart-air-purifier-elite",
       "slug": "smart-air-purifier-elite",
+      "studio": {
+        "placeable": true
+      },
       "name": "Smart Air Purifier Elite",
       "brand": "Xiaomi",
       "summary": "Effective area up to 125 m², 600 m³/h CADR particle, 592 m³/h pollen CADR, removes 99.98% particles ≥0.3 µm, eliminates 99.9% H1N1 & allergens, TÜV Rheinland Allergy Care, LED UV‑C + plasma sterilization, real‑time PM2.5/PM10 sensors, OLED display, ultra‑quiet 20.2 dB sleep mode, smart app + voice control, 3‑in‑1 filtration, silver/white finish.",
@@ -5746,6 +6150,9 @@
     {
       "id": "microwave",
       "slug": "microwave",
+      "studio": {
+        "placeable": true
+      },
       "name": "Microwave",
       "brand": null,
       "summary": "23 liters capacity, 800W power output, 6 power levels, Triple distribution system, Ceramic enamel (scratch-resistant and easy to clean), LED display, Touch control, Auto-Cook programs, Defrost function, Turntable size: 28 cm.",
@@ -5821,6 +6228,9 @@
     {
       "id": "wanbo-t6-projector",
       "slug": "wanbo-t6-projector",
+      "studio": {
+        "placeable": true
+      },
       "name": "Wanbo T6 Projector",
       "brand": "Wanbo",
       "summary": "Full HD (1920 x 1080), 550 ANSI Lumens, Projection size up to 120 inches, Built-in stereo speakers, Android operating system, Wi-Fi, Bluetooth, HDMI, USB, AV, 3.5mm audio jack, Contrast ratio: 2000:1.",
@@ -5904,6 +6314,9 @@
     {
       "id": "smart-tower-fan",
       "slug": "smart-tower-fan",
+      "studio": {
+        "placeable": true
+      },
       "name": "Smart Tower Fan",
       "brand": "Xiaomi",
       "summary": "494 m³/h max airflow, 5.6 m/s max wind speed, 150° oscillation, 100 speed levels via app, Direct/Natural/Sleep modes, 28.7 dB(A) quiet operation, Xiaomi Home smart control, 24W rated power, slim space-saving design.",
@@ -6002,6 +6415,10 @@
     {
       "id": "metal-monitor-light-bar",
       "slug": "metal-monitor-light-bar",
+      "studio": {
+        "placeable": true,
+        "art": "lamp-smart-led"
+      },
       "name": "Monitor Light Bar",
       "brand": null,
       "summary": "Mijia dimmable light bar, changeable color (2700-6500K), Premium metal body, High Ra95 color rendering index, Magnetic rotation system.",
@@ -6070,6 +6487,9 @@
     {
       "id": "smart-power-strip-6",
       "slug": "smart-power-strip-6",
+      "studio": {
+        "placeable": false
+      },
       "name": "Smart Power Strip 6",
       "brand": "Xiaomi",
       "summary": "Your ultimate connectivity companion incl. European (type F), American without ground (type A), Australian (type I), 3x USB ports with 2.0 m in length.",
@@ -6138,6 +6558,10 @@
     {
       "id": "mi-30-curved-monitor",
       "slug": "mi-30-curved-monitor",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-34-ultrawide"
+      },
       "name": "30\" Full HD Gaming Monitor",
       "brand": "Xiaomi",
       "summary": "Xiaomi Monitor 30\" IPS screen at 200Hz, WFHD (2560 × 1080) ultra-wide display, 99% sRGB, 300 Nits, 4ms response time.",
@@ -6226,6 +6650,10 @@
     {
       "id": "4-k-ultra-wide-34",
       "slug": "4-k-ultra-wide-34",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-34-ultrawide"
+      },
       "name": "34\" 4K Curved Monitor",
       "brand": "Xiaomi",
       "summary": "Xiaomi Mi Curved 34\" Multitasking Monitor at 144Hz, WQHD 3440 × 1440, 300 Nits, 121% sRGB, 4ms response time.",
@@ -6314,6 +6742,10 @@
     {
       "id": "capsule-coffee-machine",
       "slug": "capsule-coffee-machine",
+      "studio": {
+        "placeable": true,
+        "art": "coffee-machine"
+      },
       "name": "Dolce Gusto Capsule Coffee Machine",
       "brand": "Dolce Gusto",
       "summary": "15-bar pump pressure, 0.8 liters, 1500W, Adjustable for different cup sizes, Energy-saving feature, Hot & cold beverage preparation.",
@@ -6396,6 +6828,9 @@
     {
       "id": "wi-fi-6-router-5-g",
       "slug": "wi-fi-6-router-5-g",
+      "studio": {
+        "placeable": true
+      },
       "name": "Dual-Band Wi-Fi 6 Router",
       "brand": "Tp-Link",
       "summary": "TP-Link Archer AX72 | AX5400, 5400 Mbps WiFi 6, 2.4GHz + 5GHz, up to 200+ devices, 4x LAN, 1x USB 3.0, 6× antennas, 64-bit Qualcomm CPU, TP-Link HomeShield.",
@@ -6469,6 +6904,9 @@
     {
       "id": "mouse-pad",
       "slug": "mouse-pad",
+      "studio": {
+        "placeable": false
+      },
       "name": "Mouse Pad",
       "brand": "Logitech",
       "summary": "Smooth fabric surface, anti-slip rubber base, optimized for optical & laser sensors, stitched edges, comfortable wrist movement, minimalist desk setup accessory",
@@ -6529,6 +6967,10 @@
     {
       "id": "nespresso-inissia",
       "slug": "nespresso-inissia",
+      "studio": {
+        "placeable": true,
+        "art": "coffee-machine"
+      },
       "name": "Nespresso Capsule Coffee Machine",
       "brand": "Nespresso",
       "summary": "19-bar pump pressure, 0.7-liter water tank, 1260W power, Adjustable for different cup sizes, Energy-saving auto shut-off feature, Fast 25-second heat-up time.",
@@ -6597,6 +7039,9 @@
     {
       "id": "portable-tv-stand",
       "slug": "portable-tv-stand",
+      "studio": {
+        "placeable": true
+      },
       "name": "Portable TV Stand",
       "brand": null,
       "summary": "Oximus TC6100 TV stand, supports 32–90\" screens, up to 70kg, height adjustable, Eiffel-style heavy-duty steel frame, built-in wheels for mobility, integrated accessory shelf, compact and portable design.",
@@ -6651,6 +7096,9 @@
     {
       "id": "table-fan",
       "slug": "table-fan",
+      "studio": {
+        "placeable": true
+      },
       "name": "Table Fan",
       "brand": null,
       "summary": "20 inches, 70W motor, Oscillation, Adjustable height, Multiple speed options.",
@@ -6719,6 +7167,9 @@
     {
       "id": "extension-cable",
       "slug": "extension-cable",
+      "studio": {
+        "placeable": false
+      },
       "name": "Extension Cable",
       "brand": null,
       "summary": "Length from 2 - 10 meters, high-quality material, home and office use.",
@@ -6762,6 +7213,9 @@
     {
       "id": "thunderbolt-5-usb-c-cable",
       "slug": "thunderbolt-5-usb-c-cable",
+      "studio": {
+        "placeable": false
+      },
       "name": "Thunderbolt 5 USB-C Cable",
       "brand": "Ugreen",
       "summary": "Thunderbolt 5, 80Gbps data transfer, 240W PD charging, dual 6K or 8K@60Hz video, PCIe tunneling, USB4/Thunderbolt 4/3 compatible, braided cable, gold-plated connectors.",
@@ -6837,6 +7291,9 @@
     {
       "id": "display-port-1-4-4-k-cable",
       "slug": "display-port-1-4-4-k-cable",
+      "studio": {
+        "placeable": false
+      },
       "name": "DisplayPort 1.4 4K Cable",
       "brand": "Ugreen",
       "summary": "DisplayPort 1.4, 8K@60Hz, 4K@144Hz, 1080p@240Hz, 32.4Gbps bandwidth, Adaptive Sync, G-Sync & FreeSync compatible, dynamic HDR, 32-bit audio support, gold-plated connectors, pure copper conductor, 1 meter length.",
@@ -6905,6 +7362,9 @@
     {
       "id": "usb-c-3-1-100-w-10-gbps-cable",
       "slug": "usb-c-3-1-100-w-10-gbps-cable",
+      "studio": {
+        "placeable": false
+      },
       "name": "USB-C 3.1 100W 10Gbps Cable",
       "brand": null,
       "summary": "USB-C 3.1 Gen 2, 10Gbps data transfer, 100W (20V/5A) PD charging, 4K@60Hz video output, Thunderbolt 3 compatible, supports QC 3.0 & PD 3.0, nylon braided.",
@@ -6988,6 +7448,9 @@
     {
       "id": "hdmi-2-0-cable",
       "slug": "hdmi-2-0-cable",
+      "studio": {
+        "placeable": false
+      },
       "name": "8K HDMI Cable",
       "brand": "Ugreen",
       "summary": "Available as HDMI 2.0 or HDMI 2.1 High Performance, 4K@60Hz to 4K@240Hz, up to 8K@60Hz, 18Gbps or 48Gbps bandwidth, HDR, synchronized audio & video, eARC, VRR support, ideal for monitors, TVs, projectors, gaming consoles and professional workstations.",
@@ -7042,6 +7505,9 @@
     {
       "id": "usb-c-to-hdmi-display-cable",
       "slug": "usb-c-to-hdmi-display-cable",
+      "studio": {
+        "placeable": false
+      },
       "name": "USB-C to HDMI Display Cable",
       "brand": null,
       "summary": "USB-C to HDMI, up to 4K (3840x2160, Ultra HD), audio pass-thru uncompressed digital 7.1, 5.1 or 2 channels, Gold-plated connectors, support up to 60Hz in 4K resolution.",
@@ -7095,6 +7561,9 @@
     {
       "id": "usb-c-to-display-port-cable",
       "slug": "usb-c-to-display-port-cable",
+      "studio": {
+        "placeable": false
+      },
       "name": "USB-C to DisplayPort Cable",
       "brand": null,
       "summary": "Up to 8K @60Hz, 4K @144Hz, 2K @165Hz, universal compatible USB-C to DisplayPort 1.4 cable, bandwidth up to 32.4 Gbps, optimal for gaming and direct laptop-to-monitor connections.",
@@ -7163,6 +7632,9 @@
     {
       "id": "mini-display-port-to-hdmi-adapter",
       "slug": "mini-display-port-to-hdmi-adapter",
+      "studio": {
+        "placeable": false
+      },
       "name": "Mini DisplayPort to HDMI Adapter",
       "brand": null,
       "summary": "Connect your MacBook to your HDTV using the Mini DisplayPort to HDMI Adapter. Delivering both digital audio the adapter converts video to connect to any device enabled with HDMI technology.",
@@ -7220,6 +7692,9 @@
     {
       "id": "xlr-female-to-3-5mm-cable",
       "slug": "xlr-female-to-3-5mm-cable",
+      "studio": {
+        "placeable": false
+      },
       "name": "XLR Female to 3.5mm Cable",
       "brand": null,
       "summary": "Canare XLR Female to 3.5mm Gold-Plated Audio Cable, 2 meters, Model L-2T2S, Japan Standard, gold-plated connectors, compatible with Podcast Microphone Kit.",
@@ -7288,6 +7763,9 @@
     {
       "id": "logitech-wireless-headphones",
       "slug": "logitech-wireless-headphones",
+      "studio": {
+        "placeable": false
+      },
       "name": "Wireless Headphones",
       "brand": "Logitech",
       "summary": "The Logitech Zone 300 is a lightweight wireless Bluetooth headset designed for clear calls, comfortable all-day use, and reliable connectivity. Dual noise-canceling microphones reduce background noise, while 30 mm drivers deliver crisp, balanced audio for meetings, calls, music, and everyday work.",
@@ -7382,6 +7860,9 @@
     {
       "id": "portable-gas-bbq-grill",
       "slug": "portable-gas-bbq-grill",
+      "studio": {
+        "placeable": true
+      },
       "name": "Portable Gas BBQ Grill",
       "brand": "Weber",
       "summary": "Weber Portable gas BBQ grill, 3.8 kW stainless-steel burner, 2,065 cm² cooking area, porcelain-enameled cast-iron grates, integrated folding cart, side preparation table, built-in wheels, low-to-high temperature control, compact foldable design, 22 kg.",
@@ -7465,6 +7946,9 @@
     {
       "id": "philips-digital-airfryer",
       "slug": "philips-digital-airfryer",
+      "studio": {
+        "placeable": true
+      },
       "name": "Philips Digital Air Fryer",
       "brand": "Philips",
       "summary": "6.2 liters capacity, 1700W max power, 13 cooking functions, RapidAir technology, Up to 90% less fat, Cooking window, Digital touch controls, Temperature range 40–200°C, Keep warm & reheat functions, Non-stick removable basket, Auto shut-off.",
@@ -7547,6 +8031,9 @@
     {
       "id": "2-in-1-washing-machine",
       "slug": "2-in-1-washing-machine",
+      "studio": {
+        "placeable": true
+      },
       "name": "2 in 1 Washing machine",
       "brand": null,
       "summary": "Up to 11kg washing capacity, up to 7kg drying capacity, EcoBubble™ technology, AI Control panel, 1,400 RPM spin speed, Hygiene Steam function, Air Wash function, Digital Inverter Motor, SmartThings™ compatibility, Energy efficiency class A.",
@@ -7635,6 +8122,9 @@
     {
       "id": "3-in-1-blender",
       "slug": "3-in-1-blender",
+      "studio": {
+        "placeable": true
+      },
       "name": "3 in 1 Blender",
       "brand": null,
       "summary": "KLAZ 3-in-1 Blender, 1.5L capacity, 500W motor, blend, grind, and chop all in one device.",
@@ -7710,6 +8200,9 @@
     {
       "id": "air-purifier-filter",
       "slug": "air-purifier-filter",
+      "studio": {
+        "placeable": false
+      },
       "name": "Air Purifier Filter",
       "brand": "Xiaomi",
       "summary": "Original Xiaomi replacement filter, multi-layer high-efficiency filtration, 99.98% filtration of 0.3 μm particles, activated carbon odor & TVOC removal, long filter lifespan, sealed replacement filter, available for Smart Air Purifier 6 and Smart Air Purifier Elite.",
@@ -7781,6 +8274,9 @@
     {
       "id": "babyliss-hair-dryer",
       "slug": "babyliss-hair-dryer",
+      "studio": {
+        "placeable": false
+      },
       "name": "BaByliss Hair Dryer",
       "brand": null,
       "summary": "2100W professional AC motor, Ionic frizz control, Ceramic heat-balancing technology, 3 heat & 2 speed settings, Cool shot button, Ultra-slim concentrator nozzle, Removable filter, 3 m salon-length cord, Hanging loop, Lightweight design (793 g).",
@@ -7835,6 +8331,9 @@
     {
       "id": "clothes-rack",
       "slug": "clothes-rack",
+      "studio": {
+        "placeable": true
+      },
       "name": "Clothes Rack",
       "brand": "Ikea",
       "summary": "100 cm width, 45 cm depth, height: 151 cm, max load: 20 kg, steel material, polyester powder coating, 2.7 kg.",
@@ -7879,6 +8378,9 @@
     {
       "id": "drying-rack",
       "slug": "drying-rack",
+      "studio": {
+        "placeable": true
+      },
       "name": "Drying Rack",
       "brand": "Ikea",
       "summary": "99 cm width, 39 cm depth, 79 cm height, 9 meters drying capacity, Steel, polyester powder coating, 2.1 kg.",
@@ -7932,6 +8434,9 @@
     {
       "id": "flip-chart-paper",
       "slug": "flip-chart-paper",
+      "studio": {
+        "placeable": false
+      },
       "name": "Flip Chart Paper",
       "brand": null,
       "summary": "20 flip chart sheets, large presentation paper pad, smooth writing surface, compatible with most flip chart stands, ideal for workshops, training sessions, brainstorming, meetings, and classroom use",
@@ -7971,6 +8476,9 @@
     {
       "id": "foldable-massage-table",
       "slug": "foldable-massage-table",
+      "studio": {
+        "placeable": true
+      },
       "name": "Foldable Massage Table",
       "brand": null,
       "summary": "2-section folding design, Beech wood legs, Height adjustable from 64–85.5 cm (8 positions), Adjustable & removable headrest/face cradle, 2 armrests & hand pallet included, Soft foam cushion with PVC leather cover, Tool-free setup, Non-slip foot caps, Max load 250 kg static / 100 kg dynamic, Folds into a carry case.",
@@ -8053,6 +8561,9 @@
     {
       "id": "foldable-travel-cot",
       "slug": "foldable-travel-cot",
+      "studio": {
+        "placeable": true
+      },
       "name": "Foldable Travel Cot",
       "brand": null,
       "summary": "Suitable from birth to 15 kg, Full-size removable bassinet, Removable mattress, Mesh ventilation on all 4 sides, Zipper side entry, One-hand compact fold (bassinet stays attached), Elevated draught-resistant base, Secure frame, Travel bag included, EN 716-1 certified.",
@@ -8128,6 +8639,9 @@
     {
       "id": "hanger-bundle",
       "slug": "hanger-bundle",
+      "studio": {
+        "placeable": false
+      },
       "name": "Hanger Bundle",
       "brand": "Ikea",
       "summary": "17 ¾ inches width, ½ inch thick, Solid wood, Acrylic paint, 8 hangers per pack.",
@@ -8192,6 +8706,9 @@
     {
       "id": "ironing-board",
       "slug": "ironing-board",
+      "studio": {
+        "placeable": true
+      },
       "name": "Ironing Board",
       "brand": "Ikea",
       "summary": "120 cm length, 37 cm width, 60-90 cm height, steel, polyester powder coating, 100% cotton cover, polyurethane foam padding, 5.2 kg.",
@@ -8252,6 +8769,9 @@
     {
       "id": "kettle",
       "slug": "kettle",
+      "studio": {
+        "placeable": true
+      },
       "name": "Kettle",
       "brand": null,
       "summary": "1.8-liter capacity, 1500W power, Automatic shut-off, Boil-dry protection, 360-degree swivel base, Concealed heating element, Stainless steel and plastic construction, Water level indicator, 70 cm cord length, Lightweight design.",
@@ -8289,6 +8809,9 @@
     {
       "id": "mini-bar-fridge",
       "slug": "mini-bar-fridge",
+      "studio": {
+        "placeable": true
+      },
       "name": "Mini Bar Fridge",
       "brand": null,
       "summary": "GEA GMB 50 mini bar, 46L capacity, 0°C to 8°C cooling range, matt grey finish, R600a refrigerant, 90W power, analog thermostat, recessed handle with door lock, compact and portable design.",
@@ -8343,6 +8866,9 @@
     {
       "id": "padel-balls",
       "slug": "padel-balls",
+      "studio": {
+        "placeable": false
+      },
       "name": "Padel Balls",
       "brand": "Decathlon",
       "summary": "Premium pressurized padel balls, tournament-quality performance, consistent bounce, durable felt construction, available in Club and Speed variants, ideal for training, casual games, and competitive matches.",
@@ -8397,6 +8923,9 @@
     {
       "id": "post-it-notes",
       "slug": "post-it-notes",
+      "studio": {
+        "placeable": false
+      },
       "name": "Post-it Notes",
       "brand": null,
       "summary": "3 pads of Post-it® Super Sticky Notes, strong adhesive backing, removable without residue, ideal for brainstorming, workshops, meetings, project planning, and office organization",
@@ -8444,6 +8973,9 @@
     {
       "id": "steam-iron",
       "slug": "steam-iron",
+      "studio": {
+        "placeable": false
+      },
       "name": "Steam Iron",
       "brand": null,
       "summary": "26 cm length, 11 cm width, 13 cm height, 180 cm cord length, water tank capacity 160 ml, 1200W power, 0.9 kg.",
@@ -8497,6 +9029,9 @@
     {
       "id": "washing-machine-7kg",
       "slug": "washing-machine-7kg",
+      "studio": {
+        "placeable": true
+      },
       "name": "Washing machine 7kg",
       "brand": null,
       "summary": "Up to 7kg capacity, Quick wash in 18 minutes, Delayed start of washing, Drum cleaning",
@@ -8586,6 +9121,9 @@
     {
       "id": "whiteboard-marker-and-eraser-set",
       "slug": "whiteboard-marker-and-eraser-set",
+      "studio": {
+        "placeable": false
+      },
       "name": "Whiteboard Marker & Eraser Set",
       "brand": null,
       "summary": "Whiteboard markers and magnetic eraser for workshops, meetings, classrooms, training sessions, and office presentations. Choose markers, eraser, or both.",
@@ -8616,6 +9154,10 @@
     {
       "id": "ben-q-2-k-grading-monitor-27",
       "slug": "ben-q-2-k-grading-monitor-27",
+      "studio": {
+        "placeable": true,
+        "art": "monitor-27-4k"
+      },
       "name": "27\" 2K+ Grading Monitor",
       "brand": "BenQ",
       "summary": "BenQ 27-inch screen with QHD 2K (2560 x 1440) resolution at 99% DCI-P3 Adobe RGB and Cinematic Wide Color Gamut, PANTONE Validated.",
@@ -8712,6 +9254,9 @@
     {
       "id": "whiteboard-magnets",
       "slug": "whiteboard-magnets",
+      "studio": {
+        "placeable": false
+      },
       "name": "Whiteboard Magnets",
       "brand": null,
       "summary": "5 colorful magnetic pins, 30 mm diameter, strong magnetic hold, reusable, ideal for whiteboards, flip charts, planning boards, workshops, meetings, and office organization",
@@ -8759,6 +9304,9 @@
     {
       "id": "workshop-voting-stickers",
       "slug": "workshop-voting-stickers",
+      "studio": {
+        "placeable": false
+      },
       "name": "Workshop Voting Stickers",
       "brand": null,
       "summary": "Fluorescent label stickers, assorted colors, 15 mm round dots, self-adhesive, ideal for voting sessions, brainstorming, whiteboards, flip charts, workshops, and team collaboration",
@@ -8802,6 +9350,9 @@
     {
       "id": "coffee-filter-papers",
       "slug": "coffee-filter-papers",
+      "studio": {
+        "placeable": false
+      },
       "name": "Coffee Filter Papers",
       "brand": "Melitta",
       "summary": "Melitta #4 cone coffee filters, compatible with Bosch filter coffee makers, natural brown paper, chlorine-free, compostable material, microfine perforation design, smooth clean coffee extraction, pack of 10 filters",
@@ -8884,6 +9435,9 @@
     {
       "id": "gigabit-lan-cable",
       "slug": "gigabit-lan-cable",
+      "studio": {
+        "placeable": false
+      },
       "name": "Gigabit LAN Cable",
       "brand": null,
       "summary": "CAT6 Gigabit Ethernet cable, up to 1 Gbps network speed, 250 MHz bandwidth, gold-plated RJ45 connectors, durable PVC jacket, ideal for routers, access points, gaming, smart TVs, laptops, and office networks",
@@ -8919,6 +9473,37 @@
       "included": ["LAN Cable"],
       "tags": ["Cable"],
       "productUrl": "https://monis.rent/products/gigabit-lan-cable"
+    }
+  ],
+  "decor": [
+    {
+      "id": "plant-monstera",
+      "name": "Monstera",
+      "summary": "A big leafy plant for the corner. Sets the scene, not rented.",
+      "studio": {
+        "placeable": true,
+        "footprint": {
+          "w": 2,
+          "d": 2
+        },
+        "heightCm": 90,
+        "surface": "floor"
+      }
+    },
+    {
+      "id": "rug-woven",
+      "name": "Woven Rug",
+      "summary": "Warms up the floor under a desk. Sets the scene, not rented.",
+      "studio": {
+        "placeable": true,
+        "footprint": {
+          "w": 8,
+          "d": 8
+        },
+        "heightCm": 1,
+        "surface": "floor",
+        "flat": true
+      }
     }
   ]
 }

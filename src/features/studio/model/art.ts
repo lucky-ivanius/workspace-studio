@@ -1,160 +1,302 @@
 /**
- * Which catalogue products appear in the room, and what they are drawn as.
+ * Which catalogue entries the room draws, and what they are drawn as.
  *
- * This is curation, not synced data, which is why it lives here rather than in
- * `scripts/sync-catalog.mjs`: changing a verdict is a code review, not a network
- * round trip, and the rules are covered by `art.test.ts`.
+ * Every decision lives in catalog.json, in a `studio` block on the entry.
+ * monis.rent only seeds that file; the `studio` blocks are ours, written by hand,
+ * and `pnpm catalog:sync` preserves them. So putting a PNG in
+ * `public/assets/studio` and flipping one flag is the whole of adding art — no
+ * code changes, no mapping table.
+ *
+ * How an entry is drawn, in order:
+ *
+ * 1. `placeable: false`, or no `studio` block at all — not drawn. Adding it puts
+ *    it straight in the cart.
+ * 2. `art: "some-drawing"` — a drawing shared with near-identical siblings, which
+ *    declares its own shape under `studio.drawings`. A 27" panel looks the same
+ *    on an isometric desk whoever made it.
+ * 3. `public/assets/studio/<slug>.png` exists — its own art, shaped by whatever
+ *    the entry declares and otherwise by its category's stand-in.
+ * 4. Otherwise — its category's stand-in, so a product is placeable the moment
+ *    it is marked so, with or without art.
+ *
+ * The file listing comes from art-index.json, written by `pnpm art:index`: this
+ * module runs in the browser, so it cannot look in the folder itself.
  */
+
+import artIndex from "./art-index.json";
+import { isoAsset } from "./assets";
+import catalog from "./catalog.json";
+import type { ArtShape, AssetSpec, Drawing, StudioAttributes } from "./types";
 
 /**
- * Products that have bespoke isometric art, keyed by monis.rent slug. Several
- * products may share one asset: a 27" panel looks the same on an isometric desk
- * whoever made it.
+ * catalog.json is hand-edited, so its curated half is read through one declared
+ * shape rather than trusted field by field. `artProblems` is the guard: it names
+ * every mistake in the data and `art.test.ts` fails on any of them.
  */
-export const ART_BY_SLUG: Readonly<Record<string, string>> = {
-  "electrical-adjustable-desk": "desk-electric-standing",
-  "adjustable-wooden-desk": "desk-mechanical-wooden",
-  "dual-motor-electric-standing-desk": "desk-dual-motor",
-
-  "ergonomic-office-chair": "chair-ergonomic-mesh",
-
-  "full-hd-office-24": "monitor-24-fhd",
-  "24-full-hd-office-monitor-a24i-2": "monitor-24-fhd",
-  "24-full-hd-office-monitor-a24i-2026": "monitor-24-fhd",
-
-  "27-4-k-multimedia-monitor": "monitor-27-4k",
-  "27-work-monitor-a27i": "monitor-27-4k",
-  "27-work-monitor-mi-d": "monitor-27-4k",
-  "apple-studio-display": "monitor-27-4k",
-  "ben-q-2-k-grading-monitor-27": "monitor-27-4k",
-  "4k-grading-monitor-27": "monitor-27-4k",
-
-  "mi-30-curved-monitor": "monitor-34-ultrawide",
-  "32-4-k-ergonomic-monitor": "monitor-34-ultrawide",
-  "4-k-ultra-wide-34": "monitor-34-ultrawide",
-  "34-4-k-curved-monitor-180-hz": "monitor-34-ultrawide",
-
-  "smart-led-desk-lamp-1-s": "lamp-smart-led",
-  "hue-signe-gradient-lamp": "lamp-smart-led",
-  "metal-monitor-light-bar": "lamp-smart-led",
-
-  "ergonomic-laptop-stand": "laptop-stand",
-
-  "logitech-mx-keyboard": "keyboard-mx",
-  "apple-magic-keyboard": "keyboard-mx",
-
-  "nespresso-essenza-coffee-machine": "coffee-machine",
-  "nespresso-inissia": "coffee-machine",
-  "capsule-coffee-machine": "coffee-machine",
-  "bosch-coffee-maker": "coffee-machine",
-
-  "marshall-woburn-ii-bluetooth": "speaker-marshall",
-  "apple-home-pod": "speaker-marshall",
+const data = catalog as unknown as {
+  studio: {
+    /** Drawings shared by more than one entry, or borrowed as stand-ins. */
+    drawings: Drawing[];
+    /** The stand-in for a category that names none. */
+    fallbackDrawing: string;
+  };
+  categories: Array<{ id: string; studio?: { generic?: string | null } }>;
+  products: Array<{
+    slug: string;
+    categoryIds: string[];
+    studio?: StudioAttributes;
+  }>;
+  decor: Array<{ id: string; studio?: StudioAttributes }>;
 };
 
+/** The art on disk, by name without the extension. */
+const ON_DISK: ReadonlySet<string> = new Set(artIndex.names);
+
+const DRAWINGS = new Map(
+  data.studio.drawings.map((drawing) => [drawing.id, drawing]),
+);
+
+const GENERIC_BY_CATEGORY = new Map(
+  data.categories.flatMap((category) => {
+    const generic = category.studio?.generic;
+    return generic ? [[category.id, generic] as const] : [];
+  }),
+);
+
 /**
- * Products the room never draws, so adding one puts it straight in the cart.
+ * A product whose categories carry no stand-in stands on the floor rather than
+ * on a desk. A desk stand-in would demand a desk before the product could be
+ * added at all, which is a poor guess to make about a category nobody has
+ * classified yet.
  *
- * monis.rent rents plenty of things with no isometric presence: a cable, a spare
- * filter, a pack of sticky notes, a controller that lives in your hands. The
- * smallest thing the grid can hold is a 20 cm tile, and none of these would read
- * as anything but a speck or a lie about its size.
- *
- * Slugs rather than categories, because "office accessories" holds a monitor
- * stand and an HDMI cable alike. Anything absent from this list is placeable,
- * which is the safe default: it falls back to a generic block and can be dragged
- * around like everything else.
+ * Without this one drawing there is nothing to draw an unclassified product as,
+ * so a missing fallback is a broken catalogue rather than a reportable problem.
  */
-export const CART_ONLY_SLUGS: ReadonlySet<string> = new Set([
-  // Cables, adapters and power.
-  "6-in-1-converter-hub",
-  "display-port-1-4-4-k-cable",
-  "extension-cable",
-  "gigabit-lan-cable",
-  "hdmi-2-0-cable",
-  "international-power-strip",
-  "mini-display-port-to-hdmi-adapter",
-  "smart-power-strip-6",
-  "thunderbolt-5-usb-c-cable",
-  "usb-c-3-1-100-w-10-gbps-cable",
-  "usb-c-to-display-port-cable",
-  "usb-c-to-hdmi-display-cable",
-  "wi-fi-range-extender",
-  "xlr-female-to-3-5mm-cable",
+function fallbackDrawing(): Drawing {
+  const drawing = DRAWINGS.get(data.studio.fallbackDrawing);
+  if (drawing) return drawing;
 
-  // Held in the hand or worn, so they are never sitting in the room.
-  "apple-magic-mouse",
-  "apple-magic-trackpad",
-  "babyliss-hair-dryer",
-  "insta360-action-camera",
-  "logitech-4-k-webcam",
-  "logitech-mx-master-mouse-s3",
-  "logitech-mx-mouse",
-  "logitech-wireless-headphones",
-  "massage-gun",
-  "padel-racket",
-  "ps-5-wireless-controller",
-  "sony-psvr-2-vr-headset",
-  "steam-iron",
-  "switch-2-controller-pack",
+  throw new Error(
+    `catalog.json names "${data.studio.fallbackDrawing}" as its fallback ` +
+      `drawing, but studio.drawings does not declare it.`,
+  );
+}
 
-  // Consumables, spares and flat stationery.
-  "air-purifier-filter",
-  "coffee-filter-papers",
-  "flip-chart-paper",
-  "hanger-bundle",
-  "mouse-pad",
-  "padel-balls",
-  "post-it-notes",
-  "ps-5-games",
-  "whiteboard-magnets",
-  "whiteboard-marker-and-eraser-set",
-  "workshop-voting-stickers",
-]);
+const FALLBACK = fallbackDrawing();
 
-/**
- * What a placeable product without bespoke art is drawn as: a stand-in block
- * sized for the kind of thing its category holds. The catalogue runs to a
- * hundred-odd products and only a handful have their own art, so this is what
- * lets any of them be dropped into the room.
- */
-const GENERIC_BY_CATEGORY: Readonly<Record<string, string>> = {
-  monitors: "generic-screen",
-  furniture: "generic-floor-large",
-  "office-accessories": "generic-desk-small",
-  computer: "generic-desk-medium",
-  gaming: "generic-desk-medium",
-  "smart-home": "generic-floor-small",
-  "audio-and-video": "generic-desk-tall",
-  "health-and-fitness": "generic-floor-wide",
-};
-
-/**
- * A product whose categories carry no rule stands on the floor rather than on a
- * desk. A desk stand-in would demand a desk before it could be added at all,
- * which is a poor guess to make on a category nobody has looked at yet.
- */
-const GENERIC_FALLBACK = "generic-floor-small";
-
-/** The parts of a product that decide how it is drawn. */
+/** What an entry looks like to this module: an id, categories, and intent. */
 export type ArtSubject = {
-  slug: string;
+  /** The entry's catalogue id, which is also the name its own art would have. */
+  id: string;
   categoryIds: string[];
+  studio: StudioAttributes | undefined;
 };
 
-/**
- * The asset a product is drawn with, or undefined when it is cart-only.
- */
-export function artFor({ slug, categoryIds }: ArtSubject): string | undefined {
-  if (CART_ONLY_SLUGS.has(slug)) return undefined;
-
-  const bespoke = ART_BY_SLUG[slug];
-  if (bespoke) return bespoke;
-
+function standInFor(categoryIds: string[]): Drawing {
   for (const id of categoryIds) {
-    const generic = GENERIC_BY_CATEGORY[id];
-    if (generic) return generic;
+    const name = GENERIC_BY_CATEGORY.get(id);
+    const drawing = name === undefined ? undefined : DRAWINGS.get(name);
+    if (drawing) return drawing;
   }
 
-  return GENERIC_FALLBACK;
+  return FALLBACK;
+}
+
+/** The entry's own measurements, falling back to the stand-in it replaces. */
+function shapeOf(studio: StudioAttributes, standIn: ArtShape): ArtShape {
+  return {
+    footprint: studio.footprint ?? standIn.footprint,
+    heightCm: studio.heightCm ?? standIn.heightCm,
+    surface: studio.surface ?? standIn.surface,
+    seat: studio.seat ?? standIn.seat,
+    flat: studio.flat ?? standIn.flat,
+    surfaceHeightCm: studio.surfaceHeightCm ?? standIn.surfaceHeightCm,
+  };
+}
+
+/**
+ * The four rules at the top of this file, applied. Exported so the rules can be
+ * read and tested on their own, without a product that happens to exercise them.
+ */
+export function artOf({
+  id,
+  categoryIds,
+  studio,
+}: ArtSubject): AssetSpec | undefined {
+  if (!studio?.placeable) return undefined;
+
+  const shared =
+    studio.art === undefined ? undefined : DRAWINGS.get(studio.art);
+  if (shared) return isoAsset(shared);
+
+  const standIn = standInFor(categoryIds);
+  if (ON_DISK.has(id)) return isoAsset({ id, ...shapeOf(studio, standIn) });
+
+  return isoAsset(standIn);
+}
+
+const SUBJECTS: ArtSubject[] = [
+  ...data.products.map((product) => ({
+    id: product.slug,
+    categoryIds: product.categoryIds,
+    studio: product.studio,
+  })),
+  ...data.decor.map((item) => ({
+    id: item.id,
+    categoryIds: [],
+    studio: item.studio,
+  })),
+];
+
+const BY_CATALOG_ID = new Map<string, AssetSpec>();
+const BY_ASSET_ID = new Map<string, AssetSpec>();
+const SUBJECT_BY_ID = new Map(SUBJECTS.map((subject) => [subject.id, subject]));
+
+for (const subject of SUBJECTS) {
+  const asset = artOf(subject);
+  if (!asset) continue;
+
+  BY_CATALOG_ID.set(subject.id, asset);
+  BY_ASSET_ID.set(asset.id, asset);
+}
+
+/** The art a catalogue entry is drawn with, or undefined when it is cart-only. */
+export function artFor(catalogId: string): AssetSpec | undefined {
+  return BY_CATALOG_ID.get(catalogId);
+}
+
+/**
+ * The art an entry would be drawn with once it has art of its own, whether or
+ * not the PNG exists yet — which is to say the canvas a new drawing has to be
+ * made at. `pnpm assets:placeholders --for <id>` draws exactly this.
+ */
+export function ownArtFor(catalogId: string): AssetSpec | undefined {
+  const subject = SUBJECT_BY_ID.get(catalogId);
+  if (!subject?.studio?.placeable) return undefined;
+
+  const { studio, categoryIds } = subject;
+  return isoAsset({
+    id: catalogId,
+    ...shapeOf(studio, standInFor(categoryIds)),
+  });
+}
+
+/**
+ * Every drawing the room can reach, deduplicated. This is what the texture
+ * bundle loads, so art nothing points at costs nothing.
+ */
+export const ASSET_LIST: AssetSpec[] = [...BY_ASSET_ID.values()].sort((a, b) =>
+  a.id.localeCompare(b.id),
+);
+
+function isPositiveInt(value: unknown): boolean {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function shapeProblems(what: string, shape: Partial<ArtShape>): string[] {
+  const found: string[] = [];
+
+  if (shape.footprint !== undefined) {
+    const { w, d } = shape.footprint;
+    if (!isPositiveInt(w) || !isPositiveInt(d)) {
+      found.push(`${what}: footprint must be whole tiles, got ${w}x${d}.`);
+    }
+  }
+
+  if (shape.heightCm !== undefined && !(shape.heightCm > 0)) {
+    found.push(`${what}: heightCm must be above zero, got ${shape.heightCm}.`);
+  }
+
+  if (
+    shape.surface !== undefined &&
+    shape.surface !== "floor" &&
+    shape.surface !== "desk"
+  ) {
+    found.push(`${what}: surface must be "floor" or "desk".`);
+  }
+
+  if (shape.surfaceHeightCm !== undefined && shape.surface === "desk") {
+    found.push(
+      `${what}: only something standing on the floor can carry a desk surface.`,
+    );
+  }
+
+  return found;
+}
+
+/**
+ * Everything wrong with the curated half of catalog.json, in sentences meant to
+ * be read by whoever edited it. The test suite asserts there is nothing here,
+ * and the dev build logs it, so a typo in the data is never a silent blank.
+ */
+export function artProblems(): string[] {
+  const found: string[] = [];
+
+  // A product and a prop sharing an id would quietly draw as one another, since
+  // both the room and the art folder know an entry by that one name.
+  const seen = new Set<string>();
+  for (const { id } of SUBJECTS) {
+    if (seen.has(id))
+      found.push(`"${id}": two catalogue entries share this id.`);
+    seen.add(id);
+  }
+
+  for (const drawing of data.studio.drawings) {
+    found.push(...shapeProblems(`drawing "${drawing.id}"`, drawing));
+
+    if (drawing.footprint === undefined || drawing.heightCm === undefined) {
+      found.push(
+        `drawing "${drawing.id}": a shared drawing needs a footprint and a ` +
+          `heightCm, because the entries borrowing it do not declare one.`,
+      );
+    }
+
+    if (!ON_DISK.has(drawing.id)) {
+      found.push(
+        `drawing "${drawing.id}": no public/assets/studio/${drawing.id}.png. ` +
+          `Draw it, or run pnpm assets:placeholders for a stand-in.`,
+      );
+    }
+  }
+
+  for (const category of data.categories) {
+    const generic = category.studio?.generic;
+    if (generic && !DRAWINGS.has(generic)) {
+      found.push(
+        `category "${category.id}": generic "${generic}" is not a declared ` +
+          `drawing.`,
+      );
+    }
+  }
+
+  for (const { id, studio } of SUBJECTS) {
+    if (studio === undefined) continue;
+    found.push(...shapeProblems(`"${id}"`, studio));
+
+    if (studio.art !== undefined && !DRAWINGS.has(studio.art)) {
+      found.push(
+        `"${id}": art "${studio.art}" is not a declared drawing. Name one of ` +
+          `studio.drawings, or drop the field and call the PNG ${id}.png.`,
+      );
+    }
+
+    if (
+      studio.art !== undefined &&
+      DRAWINGS.has(studio.art) &&
+      (studio.footprint !== undefined || studio.heightCm !== undefined)
+    ) {
+      found.push(
+        `"${id}": names the shared drawing "${studio.art}" and also declares ` +
+          `measurements. The drawing's own shape wins, so they are a lie.`,
+      );
+    }
+
+    if (!studio.placeable && Object.keys(studio).length > 1) {
+      found.push(
+        `"${id}": is not placeable, so its measurements are never used.`,
+      );
+    }
+  }
+
+  return found;
 }

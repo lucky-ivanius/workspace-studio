@@ -34,5 +34,6 @@ Open http://localhost:3000.
 | `pnpm typecheck`           | `tsc --noEmit`                                 |
 | `pnpm lint`                | Biome check                                    |
 | `pnpm format`              | Biome format                                   |
-| `pnpm catalog:sync`        | Refresh product data from monis.rent           |
-| `pnpm assets:placeholders` | Draw stand-in art for any asset missing a PNG  |
+| `pnpm catalog:sync`        | Re-seed product data from monis.rent           |
+| `pnpm art:index`           | List `public/assets/studio` for the app to read |
+| `pnpm assets:placeholders` | Draw stand-in art for any drawing missing a PNG |

@@ -1,21 +1,25 @@
 #!/usr/bin/env node
 /**
- * Pulls the Bali catalogue from the monis.rent Strapi API and writes
+ * Pulls the Bali catalogue from the monis.rent Strapi API into
  * src/features/studio/model/catalog.json.
  *
  *   pnpm catalog:sync
  *
+ * monis.rent is a seed, not the source of truth. Everything outside a `studio`
+ * block is theirs and is overwritten on every run; every `studio` block is ours,
+ * written by hand, and is carried across untouched — along with the whole `decor`
+ * list and the top-level `studio` section, which they know nothing about.
+ *
+ * A product the API has never shown before arrives with `placeable: false`, so a
+ * sync can never put something in the room that nobody has looked at.
+ *
  * The generated JSON is committed, so the app never depends on the API at build
  * or request time and the test suites stay hermetic.
- *
- * This script records what the storefront says and nothing more. Which products
- * appear in the room, and what they are drawn as, is curated in
- * src/features/studio/model/art.ts.
  *
  * Variants are deliberately ignored. A product is one rentable thing here.
  */
 
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -145,6 +149,26 @@ function isComplete(product) {
   );
 }
 
+/**
+ * Everything in the current file that is ours rather than the storefront's. A
+ * first run has none of it, which is why every lookup falls back.
+ */
+const existing = JSON.parse(await readFile(OUT, "utf8").catch(() => "{}"));
+
+const curated = {
+  studio: existing.studio ?? { drawings: [], fallbackDrawing: null },
+  decor: existing.decor ?? [],
+  byProduct: new Map(
+    (existing.products ?? []).map((product) => [product.slug, product.studio]),
+  ),
+  byCategory: new Map(
+    (existing.categories ?? []).map((category) => [
+      category.id,
+      category.studio,
+    ]),
+  ),
+};
+
 const [rawCategories, rawProducts] = await Promise.all([
   fetchAll("product-categories", {}),
   fetchAll("products", {
@@ -205,24 +229,54 @@ const categories = rawCategories
   .filter((category) => stocked.has(category.id))
   .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 
+/**
+ * `studio` sits right under the slug rather than at the end of the entry: it is
+ * the half of the record a person edits, and a product's description alone can
+ * run to forty lines.
+ */
+const fresh = [];
+const withStudio = products.map((product) => {
+  const { id, slug, ...rest } = product;
+  const studio = curated.byProduct.get(slug);
+  if (!studio) fresh.push(slug);
+
+  return { id, slug, studio: studio ?? { placeable: false }, ...rest };
+});
+
+/** Curation for a product the storefront has stopped carrying is dead weight. */
+const kept = new Set(withStudio.map((product) => product.slug));
+const dropped = [...curated.byProduct]
+  .filter(([slug, studio]) => studio?.placeable && !kept.has(slug))
+  .map(([slug]) => slug);
+
 await writeFile(
   OUT,
   `${JSON.stringify(
     {
       source: API,
       syncedAt: new Date().toISOString(),
-      categories,
-      products,
+      studio: curated.studio,
+      categories: categories.map((category) => ({
+        ...category,
+        studio: curated.byCategory.get(category.id) ?? { generic: null },
+      })),
+      products: withStudio,
+      decor: curated.decor,
     },
     null,
     2,
   )}\n`,
 );
 
+const list = (slugs) =>
+  slugs.map((slug) => `    ${slug}\n`).join("") || "    none\n";
+
 process.stdout.write(
-  `\nWrote ${products.length} products in ${categories.length} categories to ${OUT}\n` +
+  `\nWrote ${withStudio.length} products in ${categories.length} categories to ${OUT}\n` +
     `  skipped ${skipped.nonBali} outside Bali, ${skipped.offStore} off-store, ` +
     `${skipped.incomplete} incomplete\n` +
-    `\nArt and placeability are curated in model/art.ts; run pnpm test to see\n` +
-    `whether this sync left any of it pointing at a product that no longer exists.\n`,
+    `\n  new, and cart-only until you say otherwise:\n${list(fresh)}` +
+    `\n  gone from the storefront, so their curation went with them:\n${list(dropped)}` +
+    `\nEvery studio block was carried across. Run pnpm test: it reads them back\n` +
+    `and names anything the catalogue can no longer draw.\n`,
 );
