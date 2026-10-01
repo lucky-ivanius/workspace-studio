@@ -243,7 +243,7 @@ test("a refused desk move leaves its riders alone", () => {
   );
 });
 
-test("removing a desk also removes whatever sits on it", () => {
+test("removing a desk sends whatever sat on it to the cart", () => {
   const desk = place(DESK);
   place(MONITOR);
   place(LAMP);
@@ -252,9 +252,37 @@ test("removing a desk also removes whatever sits on it", () => {
 
   store().removeItem(desk);
 
-  // Only the plant stood on the floor.
+  // Only the plant stood on the floor, so only the plant is still drawn.
   assert.equal(store().items.length, 1);
   assert.equal(store().items[0].productId, PLANT);
+
+  // The monitor and the lamp lost their surface, not their place on the bill.
+  assert.deepEqual(store().cart, [
+    { productId: MONITOR, quantity: 1 },
+    { productId: LAMP, quantity: 1 },
+  ]);
+});
+
+test("each copy on a desk is carted, so the quantity survives", () => {
+  const desk = place(DESK);
+  place(MONITOR);
+  place(MONITOR);
+
+  store().removeItem(desk);
+
+  assert.deepEqual(store().items, []);
+  assert.deepEqual(store().cart, [{ productId: MONITOR, quantity: 2 }]);
+});
+
+test("removing a desk clears a selection that was standing on it", () => {
+  place(DESK);
+  const monitor = place(MONITOR);
+  assert.equal(store().selectedId, monitor);
+
+  // The desk goes while the monitor is the selection, so the toolbar would
+  // otherwise be left pointing at an item that is no longer drawn.
+  store().removeCopy(DESK);
+  assert.equal(store().selectedId, null);
 });
 
 test("removing the selected item clears the selection", () => {
@@ -277,14 +305,86 @@ test("the cart stacks duplicates and gives them back one at a time", () => {
   // Nothing is placed, so the cart is the only record of these.
   assert.equal(store().items.length, 0);
 
-  store().removeFromCart(MONITOR);
+  store().removeCopy(MONITOR);
   assert.deepEqual(store().cart, [
     { productId: MONITOR, quantity: 1 },
     { productId: LAMP, quantity: 1 },
   ]);
 
-  store().removeFromCart(MONITOR);
+  store().removeCopy(MONITOR);
   assert.deepEqual(store().cart, [{ productId: LAMP, quantity: 1 }]);
+});
+
+test("a cart copy is given back before anything in the room", () => {
+  place(DESK);
+  const first = place(MONITOR);
+  // The `+` on a summary line, which rents another without drawing it.
+  store().addToCart(MONITOR);
+  const second = place(MONITOR);
+
+  assert.equal(store().items.length, 3);
+  assert.deepEqual(store().cart, [{ productId: MONITOR, quantity: 1 }]);
+
+  // The cart copy costs nothing to give back, so the room is left alone.
+  store().removeCopy(MONITOR);
+  assert.deepEqual(store().cart, []);
+  assert.equal(store().items.length, 3);
+
+  // Only now does a sprite go, and it is the newest one.
+  store().removeCopy(MONITOR);
+  assert.deepEqual(
+    store()
+      .items.filter((item) => item.productId === MONITOR)
+      .map((item) => item.instanceId),
+    [first],
+  );
+  assert.ok(
+    !store().items.some((item) => item.instanceId === second),
+    "the newest monitor should be the one that went",
+  );
+});
+
+test("the last copy of a product leaves the setup entirely", () => {
+  place(DESK);
+  const monitor = place(MONITOR);
+
+  store().removeCopy(MONITOR);
+
+  assert.ok(!store().items.some((item) => item.instanceId === monitor));
+  assert.equal(store().selectedId, null);
+});
+
+test("giving back a copy of something nobody has is a no-op", () => {
+  place(DESK);
+
+  store().removeCopy(MONITOR);
+
+  assert.equal(store().items.length, 1);
+  assert.deepEqual(store().cart, []);
+});
+
+test("giving back a desk carts whatever stands on it", () => {
+  place(DESK);
+  place(MONITOR);
+
+  store().removeCopy(DESK);
+
+  // The desk is off the canvas and off the bill, and the monitor is still
+  // rented: `-` on the desk line may only change the desk's own quantity.
+  assert.deepEqual(store().items, []);
+  assert.deepEqual(store().cart, [{ productId: MONITOR, quantity: 1 }]);
+});
+
+test("a carted rider is given back by its own line, one click", () => {
+  place(DESK);
+  place(MONITOR);
+  store().removeCopy(DESK);
+
+  // It is a cart copy now, so the next `-` on the monitor needs no sprite.
+  store().removeCopy(MONITOR);
+
+  assert.deepEqual(store().cart, []);
+  assert.deepEqual(store().items, []);
 });
 
 test("an unknown product never reaches the cart", () => {

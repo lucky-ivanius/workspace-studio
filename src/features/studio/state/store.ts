@@ -47,8 +47,17 @@ export type StudioState = {
    */
   addProduct: (productId: string, hostId?: string) => AddResult;
   addToCart: (productId: string) => void;
-  removeFromCart: (productId: string) => void;
+  /**
+   * Gives back one copy of a product, cart first and the newest sprite last.
+   * This is the `-` on a summary line, so it has to undo an `+` without
+   * disturbing the room the user arranged.
+   */
+  removeCopy: (productId: string) => void;
   moveItem: (instanceId: string, cell: GridCell) => boolean;
+  /**
+   * Takes one item out of the room. Whatever stood on it moves to the cart, so
+   * clearing a desk off the canvas never changes what anything else costs.
+   */
   removeItem: (instanceId: string) => void;
   select: (instanceId: string | null) => void;
   setRentalWeeks: (weeks: number) => void;
@@ -56,6 +65,29 @@ export type StudioState = {
 };
 
 let ordinalCounter = 0;
+
+/**
+ * Adds one cart copy of each id, stacking onto whatever is already there.
+ * Staging is never billed, so a prop among the ids is dropped rather than
+ * carted.
+ */
+function withCopies(cart: CartEntry[], productIds: string[]): CartEntry[] {
+  let next = cart;
+
+  for (const productId of productIds) {
+    if (!getProduct(productId)) continue;
+
+    next = next.some((entry) => entry.productId === productId)
+      ? next.map((entry) =>
+          entry.productId === productId
+            ? { ...entry, quantity: entry.quantity + 1 }
+            : entry,
+        )
+      : [...next, { productId, quantity: 1 }];
+  }
+
+  return next;
+}
 
 /**
  * Resolves where an item should land when dragged to `cell`. Desk-mounted items
@@ -124,33 +156,36 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   },
 
   addToCart(productId) {
-    // Staging items are never billed, so the cart only takes rentals.
-    if (!getProduct(productId)) return;
-
-    const { cart } = get();
-    const existing = cart.find((entry) => entry.productId === productId);
-
-    set({
-      cart: existing
-        ? cart.map((entry) =>
-            entry.productId === productId
-              ? { ...entry, quantity: entry.quantity + 1 }
-              : entry,
-          )
-        : [...cart, { productId, quantity: 1 }],
-    });
+    set({ cart: withCopies(get().cart, [productId]) });
   },
 
-  removeFromCart(productId) {
-    const { cart } = get();
-    set({
-      cart: cart.flatMap((entry) => {
-        if (entry.productId !== productId) return [entry];
-        return entry.quantity > 1
-          ? [{ ...entry, quantity: entry.quantity - 1 }]
-          : [];
-      }),
-    });
+  removeCopy(productId) {
+    const { items, cart } = get();
+
+    // A cart copy is the cheapest one to give back, because nothing is drawn
+    // for it: the room the user arranged stays exactly as it is. Only once the
+    // cart is empty does a sprite have to go.
+    if (cart.some((entry) => entry.productId === productId)) {
+      set({
+        cart: cart.flatMap((entry) => {
+          if (entry.productId !== productId) return [entry];
+          return entry.quantity > 1
+            ? [{ ...entry, quantity: entry.quantity - 1 }]
+            : [];
+        }),
+      });
+      return;
+    }
+
+    // The newest copy goes first, so repeated clicks undo the adds in the order
+    // they were made.
+    let newest: PlacedItem | undefined;
+    for (const item of items) {
+      if (item.productId !== productId) continue;
+      if (!newest || item.ordinal > newest.ordinal) newest = item;
+    }
+
+    if (newest) get().removeItem(newest.instanceId);
   },
 
   moveItem(instanceId, cell) {
@@ -201,13 +236,26 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   },
 
   removeItem(instanceId) {
-    const { items, selectedId } = get();
+    const { items, cart, selectedId } = get();
+
+    // Anything resting on this loses its surface, but not the user's decision to
+    // rent it, so it moves to the cart rather than off the bill. Removing a desk
+    // is removing a desk: it may not quietly change what a monitor costs.
+    const riders = items.filter((item) => item.hostId === instanceId);
+    const gone = new Set([
+      instanceId,
+      ...riders.map((item) => item.instanceId),
+    ]);
+
     set({
-      // Anything resting on a removed desk goes with it.
-      items: items.filter(
-        (item) => item.instanceId !== instanceId && item.hostId !== instanceId,
+      items: items.filter((item) => !gone.has(item.instanceId)),
+      cart: withCopies(
+        cart,
+        riders.map((item) => item.productId),
       ),
-      selectedId: selectedId === instanceId ? null : selectedId,
+      // A rider can be the selection while its desk is the one going, so the
+      // whole set has to be checked or the toolbar would point at nothing.
+      selectedId: selectedId && gone.has(selectedId) ? null : selectedId,
     });
   },
 

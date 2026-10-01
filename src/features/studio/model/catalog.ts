@@ -38,7 +38,7 @@ export type RentalProduct = {
   categoryIds: string[];
   /** Weekly rate for stays under one month. */
   pricePerWeek: number;
-  /** Weekly rate once the rental runs past one month. */
+  /** Weekly rate from one month onwards. */
   longStayPricePerWeek: number | null;
   monthlyPrice: number | null;
   discountPercent: number | null;
@@ -119,13 +119,24 @@ export function displayName(id: string): string {
   return BY_ID.get(id)?.name ?? DECOR_BY_ID.get(id)?.name ?? id;
 }
 
+/**
+ * A month, in weeks. The storefront bills a month as four weeks of the long-stay
+ * rate — `monthlyPrice === longStayPricePerWeek * 4` holds for every product in
+ * the catalogue — so the cheaper tier starts at four weeks, not after them.
+ */
+export const LONG_STAY_WEEKS = 4;
+
 /** The "From $X/week" figure the storefront shows. */
 export function fromPricePerWeek(product: RentalProduct): number {
   return product.longStayPricePerWeek ?? product.pricePerWeek;
 }
 
+export function isLongStay(weeks: number): boolean {
+  return weeks >= LONG_STAY_WEEKS;
+}
+
 export function weeklyRate(product: RentalProduct, weeks: number): number {
-  return weeks > 4 ? fromPricePerWeek(product) : product.pricePerWeek;
+  return isLongStay(weeks) ? fromPricePerWeek(product) : product.pricePerWeek;
 }
 
 /**

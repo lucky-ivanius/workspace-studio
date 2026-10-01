@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getProduct } from "../model/catalog";
 import type { PlacedItem } from "../model/types";
-import { formatUsd, summarize } from "./summary";
+import { formatUsd, formatWeeks, summarize } from "./summary";
 
 /** Named by role, so the monis.rent slugs live in one place. */
 const DESK = "electrical-adjustable-desk";
@@ -56,7 +56,7 @@ test("duplicates collapse into one line with a quantity", () => {
 
 test("a cart item is billed even though it is not in the room", () => {
   const monitor = product(MONITOR);
-  const summary = summarize([], [{ productId: monitor.id, quantity: 2 }], 4);
+  const summary = summarize([], [{ productId: monitor.id, quantity: 2 }], 2);
 
   assert.equal(summary.lines.length, 1);
   assert.equal(summary.itemCount, 2);
@@ -69,7 +69,7 @@ test("a product in the room and in the cart shares one line", () => {
   const summary = summarize(
     [place(monitor.id)],
     [{ productId: monitor.id, quantity: 2 }],
-    4,
+    2,
   );
 
   assert.equal(summary.lines.length, 1);
@@ -85,18 +85,33 @@ test("staging items never reach checkout", () => {
   assert.equal(summary.itemCount, 1);
 });
 
-test("stays over a month use the long-stay rate", () => {
+test("the long-stay rate starts at four weeks, the month the storefront bills", () => {
   const desk = product(DESK);
   assert.notEqual(desk.longStayPricePerWeek, desk.pricePerWeek);
+  // The storefront's own monthly figure is four weeks of the long-stay rate,
+  // which is what puts the boundary at four rather than past it.
+  assert.equal(desk.monthlyPrice, (desk.longStayPricePerWeek ?? 0) * 4);
 
-  assert.equal(
-    summarize([place(desk.id)], [], 4).lines[0].ratePerWeek,
-    desk.pricePerWeek,
-  );
-  assert.equal(
-    summarize([place(desk.id)], [], 12).lines[0].ratePerWeek,
-    desk.longStayPricePerWeek,
-  );
+  const rateAt = (weeks: number) =>
+    summarize([place(desk.id)], [], weeks).lines[0].ratePerWeek;
+
+  assert.equal(rateAt(1), desk.pricePerWeek);
+  assert.equal(rateAt(3), desk.pricePerWeek);
+  assert.equal(rateAt(4), desk.longStayPricePerWeek);
+  assert.equal(rateAt(12), desk.longStayPricePerWeek);
+});
+
+test("a four week stay costs the storefront's monthly price", () => {
+  const desk = product(DESK);
+  const summary = summarize([place(desk.id)], [], 4);
+
+  assert.equal(summary.longStay, true);
+  assert.equal(summary.total - summary.deposit, desk.monthlyPrice);
+});
+
+test("a stay under a month is not a long stay", () => {
+  assert.equal(summarize([], [], 1).longStay, false);
+  assert.equal(summarize([], [], 3).longStay, false);
 });
 
 test("the total is the weekly rate for the whole stay plus deposits", () => {
@@ -121,4 +136,10 @@ test("a cart item carries its deposit too", () => {
 test("whole dollars lose the trailing zeros, cents keep them", () => {
   assert.equal(formatUsd(57), "$57");
   assert.equal(formatUsd(6.5), "$6.50");
+});
+
+test("one week is not 1 weeks", () => {
+  assert.equal(formatWeeks(1), "1 week");
+  assert.equal(formatWeeks(2), "2 weeks");
+  assert.equal(formatWeeks(12), "12 weeks");
 });
