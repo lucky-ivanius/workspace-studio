@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Workspace Studio
 
-## Getting Started
+[![CI](https://github.com/lucky-ivanius/workspace-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/lucky-ivanius/workspace-studio/actions/workflows/ci.yml)
 
-First, run the development server:
+An interactive studio for designing a Bali workspace from [monis.rent](https://monis.rent)
+rental gear, then renting the whole setup. Pick a desk, add a chair, drop in
+monitors and a lamp, arrange everything on an isometric grid, and check out.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+pnpm exec playwright install chromium   # once, for the browser tests
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Docs
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [docs/FOUNDATION.md](./docs/FOUNDATION.md) — architecture, the isometric grid,
+  the asset contract, and the product data pipeline. **Read this before adding
+  art or products.**
+- [docs/REQUIREMENTS.md](./docs/REQUIREMENTS.md) — the brief.
 
-## Learn More
+## Commands
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command                    | What it does                                   |
+| -------------------------- | ---------------------------------------------- |
+| `pnpm dev`                 | Dev server                                     |
+| `pnpm build`               | Production build                               |
+| `pnpm test`                | Unit tests: grid, placement, store, pricing    |
+| `pnpm test:e2e`            | Playwright browser tests (Chromium)            |
+| `pnpm typecheck`           | `tsc --noEmit`                                 |
+| `pnpm lint`                | Biome check                                    |
+| `pnpm format`              | Biome format                                   |
+| `pnpm catalog:sync`        | Refresh product data from monis.rent           |
+| `pnpm assets:placeholders` | Draw stand-in art for any asset missing a PNG  |
