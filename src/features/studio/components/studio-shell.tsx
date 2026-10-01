@@ -1,4 +1,3 @@
-import { CatalogPanel } from "./catalog-panel";
 import { StudioCanvasLoader } from "./studio-canvas-loader";
 import { SummaryPanel } from "./summary-panel";
 
@@ -13,11 +12,7 @@ export function StudioShell() {
         </p>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[260px_1fr_300px]">
-        <aside className="hidden min-h-0 overflow-hidden rounded-xl border bg-card lg:block">
-          <CatalogPanel />
-        </aside>
-
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[1fr_300px]">
         {/* min-w-0: the canvas has an intrinsic width, and without this the grid
             track refuses to shrink and pushes the summary off screen. */}
         <main className="min-h-0 min-w-0">

@@ -9,17 +9,42 @@ import {
   canPlace,
   deskAt,
   findPlacement,
+  hasDesk,
   type Placement,
 } from "../model/placement";
 import type { PlacedItem } from "../model/types";
 
+/** A product waiting in the cart because the room could not take it. */
+export type CartEntry = {
+  productId: string;
+  quantity: number;
+};
+
+/**
+ * Why an add did or did not reach the canvas. `needs-desk` and `no-space` are
+ * both recoverable by putting the product in the cart instead, which is the
+ * choice the UI offers.
+ */
+export type AddResult =
+  | { status: "placed"; instanceId: string }
+  | { status: "needs-desk" }
+  | { status: "no-space" }
+  | { status: "unknown" };
+
 export type StudioState = {
   items: PlacedItem[];
+  cart: CartEntry[];
   selectedId: string | null;
   /** Rental length drives which price tier the summary uses. */
   rentalWeeks: number;
 
-  addProduct: (productId: string) => string | null;
+  /**
+   * Tries to place a product in the room. `hostId` asks for a particular desk,
+   * used by the menu on a selected desk; any desk with room will do otherwise.
+   */
+  addProduct: (productId: string, hostId?: string) => AddResult;
+  addToCart: (productId: string) => void;
+  removeFromCart: (productId: string) => void;
   moveItem: (instanceId: string, cell: GridCell) => boolean;
   removeItem: (instanceId: string) => void;
   select: (instanceId: string | null) => void;
@@ -51,17 +76,23 @@ function resolveTarget(
 
 export const useStudioStore = create<StudioState>()((set, get) => ({
   items: [],
+  cart: [],
   selectedId: null,
   rentalWeeks: 4,
 
-  addProduct(productId) {
+  addProduct(productId, hostId) {
     const assetId = assetIdFor(productId);
-    if (!assetId) return null;
+    if (!assetId) return { status: "unknown" };
 
     const asset = getAsset(assetId);
     const { items } = get();
-    const placement = findPlacement(items, asset);
-    if (!placement) return null;
+    const placement = findPlacement(items, asset, hostId);
+
+    if (!placement) {
+      return asset.surface === "desk" && !hasDesk(items)
+        ? { status: "needs-desk" }
+        : { status: "no-space" };
+    }
 
     const instanceId = crypto.randomUUID();
     ordinalCounter += 1;
@@ -81,7 +112,36 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
       selectedId: instanceId,
     });
 
-    return instanceId;
+    return { status: "placed", instanceId };
+  },
+
+  addToCart(productId) {
+    if (!assetIdFor(productId)) return;
+
+    const { cart } = get();
+    const existing = cart.find((entry) => entry.productId === productId);
+
+    set({
+      cart: existing
+        ? cart.map((entry) =>
+            entry.productId === productId
+              ? { ...entry, quantity: entry.quantity + 1 }
+              : entry,
+          )
+        : [...cart, { productId, quantity: 1 }],
+    });
+  },
+
+  removeFromCart(productId) {
+    const { cart } = get();
+    set({
+      cart: cart.flatMap((entry) => {
+        if (entry.productId !== productId) return [entry];
+        return entry.quantity > 1
+          ? [{ ...entry, quantity: entry.quantity - 1 }]
+          : [];
+      }),
+    });
   },
 
   moveItem(instanceId, cell) {
@@ -131,6 +191,6 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   },
 
   clear() {
-    set({ items: [], selectedId: null });
+    set({ items: [], cart: [], selectedId: null });
   },
 }));

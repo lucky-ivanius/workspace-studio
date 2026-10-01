@@ -46,6 +46,29 @@ function desksAmong(items: PlacedItem[]) {
   });
 }
 
+/**
+ * Whether anything in the room can host desk items. Tells "there is no desk
+ * yet" apart from "every desk is full", which the two read the same to
+ * findPlacement but not to the person adding a monitor.
+ */
+export function hasDesk(items: PlacedItem[]): boolean {
+  return items.some((item) => assetOf(item).deskSurface !== undefined);
+}
+
+/**
+ * Desks with `preferredHostId` first, so an item added from one desk's own menu
+ * lands on that desk whenever it still has room.
+ */
+function desksByPreference(items: PlacedItem[], preferredHostId?: string) {
+  const desks = desksAmong(items);
+  if (!preferredHostId) return desks;
+
+  return [
+    ...desks.filter((desk) => desk.item.instanceId === preferredHostId),
+    ...desks.filter((desk) => desk.item.instanceId !== preferredHostId),
+  ];
+}
+
 export function elevationOf(item: PlacedItem, items: PlacedItem[]): number {
   if (item.surface !== "desk" || !item.hostId) return 0;
   const host = items.find((candidate) => candidate.instanceId === item.hostId);
@@ -164,9 +187,10 @@ function floorCandidates(footprint: Footprint): GridCell[] {
 export function findPlacement(
   items: PlacedItem[],
   asset: AssetSpec,
+  preferredHostId?: string,
 ): Placement | undefined {
   if (asset.surface === "desk") {
-    for (const desk of desksAmong(items)) {
+    for (const desk of desksByPreference(items, preferredHostId)) {
       for (let y = 0; y < desk.area.footprint.d; y++) {
         for (let x = 0; x < desk.area.footprint.w; x++) {
           const candidate: Placement = {
@@ -182,7 +206,7 @@ export function findPlacement(
   }
 
   if (asset.seat) {
-    for (const desk of desksAmong(items)) {
+    for (const desk of desksByPreference(items, preferredHostId)) {
       const candidate: Placement = {
         cell: {
           x:

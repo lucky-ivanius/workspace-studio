@@ -56,26 +56,85 @@ async function cursorOver(page: Page, point: { x: number; y: number }) {
   return page.locator("canvas").evaluate((element) => element.style.cursor);
 }
 
-function addButton(page: Page, name: string) {
-  return page.getByRole("button", { name, exact: false }).first();
+/**
+ * Adds a product through the in-canvas dialog, the only way in. Base UI
+ * unmounts hidden tab panels, so the tab holding the product has to be picked
+ * before the row exists.
+ */
+async function add(page: Page, tab: string, name: string) {
+  await page.getByRole("button", { name: "Add item" }).first().click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+
+  await dialog.getByRole("tab", { name: tab }).click();
+  await dialog.getByRole("button", { name: `Add ${name}` }).click();
+
+  // The backdrop outlives the close by one animation, and it would swallow the
+  // canvas clicks that come next.
+  await expect(dialog).toBeHidden();
+}
+
+function summary(page: Page) {
+  return page.getByRole("complementary").filter({ hasText: "Your setup" });
+}
+
+/** The toolbar that floats over the selected item on the canvas. */
+function deleteSelected(page: Page) {
+  return page.getByRole("button", { name: "Delete selected" });
+}
+
+/** Only a desk's toolbar carries the add menu, so this names the desk. */
+function deskMenu(page: Page) {
+  return page.getByRole("button", { name: "Add", exact: true });
+}
+
+/**
+ * Clicks sprites until a desk is the selected one. Scanning for the "grab"
+ * cursor alone finds whatever is drawn on top, which is usually the monitor.
+ */
+async function selectDesk(page: Page, canvas: Locator) {
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("canvas has no box");
+
+  for (let row = 1; row < 10; row++) {
+    for (let column = 1; column < 10; column++) {
+      const point = {
+        x: box.x + (box.width * column) / 10,
+        y: box.y + (box.height * row) / 10,
+      };
+      if ((await cursorOver(page, point)) !== "grab") continue;
+
+      await page.mouse.click(point.x, point.y);
+      await expect(deleteSelected(page)).toBeVisible();
+      if (await deskMenu(page).isVisible()) return point;
+    }
+  }
+
+  throw new Error("no desk found on the canvas");
 }
 
 function zoomTrigger(page: Page) {
-  return page.locator('[data-slot="dropdown-menu-trigger"]');
+  // The desk toolbar also carries a dropdown, so the zoom one is named.
+  return page.getByRole("button", { name: /^Zoom, currently/ });
 }
 
 async function zoomLevel(page: Page) {
   return (await zoomTrigger(page).innerText()).trim();
 }
 
-test("an empty studio shows the room and nothing to rent", async ({ page }) => {
+test("an empty studio shows the room and an invitation to fill it", async ({
+  page,
+}) => {
   const { canvas, problems } = await openStudio(page);
 
   const box = await canvas.boundingBox();
   expect(box?.width).toBeGreaterThan(200);
   expect(box?.height).toBeGreaterThan(200);
 
-  await expect(page.getByText("Pick a desk to start")).toBeVisible();
+  // No catalog sidebar any more: the only way in is the canvas button.
+  await expect(page.getByText("Nothing in the room yet")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add item" })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Rent this setup" }),
   ).toBeDisabled();
@@ -83,14 +142,33 @@ test("an empty studio shows the room and nothing to rent", async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
-test("a desk accessory cannot be added before there is a desk", async ({
+test("a desk accessory offers the cart when there is no desk", async ({
   page,
 }) => {
   const { problems } = await openStudio(page);
 
-  await addButton(page, '27" 4K Multimedia Monitor').click();
+  await add(page, "Monitors", '27" 4K Multimedia Monitor');
 
-  await expect(page.getByText("Pick a desk to start")).toBeVisible();
+  await expect(page.getByText("There's no desk")).toBeVisible();
+  await page.getByRole("button", { name: "Add to cart" }).click();
+
+  // It is billed, but it never reached the room.
+  await expect(summary(page).getByText("1 in cart")).toBeVisible();
+  await expect(page.getByText("Nothing in the room yet")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Rent this setup" }),
+  ).toBeEnabled();
+
+  expect(problems).toEqual([]);
+});
+
+test("declining the cart leaves the setup untouched", async ({ page }) => {
+  const { problems } = await openStudio(page);
+
+  await add(page, "Monitors", '27" 4K Multimedia Monitor');
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await expect(page.getByText("Nothing in the room yet")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Rent this setup" }),
   ).toBeDisabled();
@@ -103,18 +181,23 @@ test("adding a desk, a chair and a monitor builds the bill", async ({
 }) => {
   const { problems } = await openStudio(page);
 
-  await addButton(page, "Electrical Adjustable Desk").click();
-  await addButton(page, "Ergonomic Office Chair").click();
-  await addButton(page, '27" 4K Multimedia Monitor').click();
+  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Chairs", "Ergonomic Office Chair");
+  await add(page, "Monitors", '27" 4K Multimedia Monitor');
 
-  const summary = page
-    .getByRole("complementary")
-    .filter({ hasText: "Your setup" });
-  await expect(summary.getByText("Electrical Adjustable Desk")).toBeVisible();
-  await expect(summary.getByText("Ergonomic Office Chair")).toBeVisible();
-  await expect(summary.getByText('27" 4K Multimedia Monitor')).toBeVisible();
+  await expect(
+    summary(page).getByText("Electrical Adjustable Desk"),
+  ).toBeVisible();
+  await expect(summary(page).getByText("Ergonomic Office Chair")).toBeVisible();
+  await expect(
+    summary(page).getByText('27" 4K Multimedia Monitor'),
+  ).toBeVisible();
+  // All three fitted, so nothing fell through to the cart.
+  await expect(summary(page).getByText("in cart")).toBeHidden();
 
-  const perWeek = money(await summary.getByText(/^\$/).first().innerText());
+  const perWeek = money(
+    await summary(page).getByText(/^\$/).first().innerText(),
+  );
   expect(perWeek).toBeGreaterThan(0);
 
   await expect(
@@ -124,13 +207,35 @@ test("adding a desk, a chair and a monitor builds the bill", async ({
   expect(problems).toEqual([]);
 });
 
+test("a desk offers its own add menu on the canvas", async ({ page }) => {
+  const { problems } = await openStudio(page);
+
+  await add(page, "Desks", "Electrical Adjustable Desk");
+
+  // Adding selects the desk, so its toolbar is already up.
+  await expect(deskMenu(page)).toBeVisible();
+  await deskMenu(page).click();
+
+  await expect(
+    page.getByRole("menuitem", { name: "Add monitor" }),
+  ).toBeVisible();
+  await page.getByRole("menuitem", { name: "Add lamp" }).click();
+  await page.getByRole("menuitem", { name: "Smart LED Desk Lamp 1S" }).click();
+
+  // On the desk, not stranded in the cart.
+  await expect(summary(page).getByText("Smart LED Desk Lamp 1S")).toBeVisible();
+  await expect(summary(page).getByText("in cart")).toBeHidden();
+
+  expect(problems).toEqual([]);
+});
+
 test("the total is the weekly rate for the whole stay plus the deposit", async ({
   page,
 }) => {
   const { problems } = await openStudio(page);
 
-  await addButton(page, "Electrical Adjustable Desk").click();
-  await addButton(page, "Ergonomic Office Chair").click();
+  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Chairs", "Ergonomic Office Chair");
 
   const amount = async (name: string) =>
     money(await page.getByTestId(`summary-${name}`).innerText());
@@ -152,7 +257,7 @@ test("the total is the weekly rate for the whole stay plus the deposit", async (
 test("dragging a desk moves it to a new tile", async ({ page }) => {
   const { canvas, problems } = await openStudio(page);
 
-  await addButton(page, "Electrical Adjustable Desk").click();
+  await add(page, "Desks", "Electrical Adjustable Desk");
 
   const from = await findSprite(page, canvas);
   const box = await canvas.boundingBox();
@@ -181,7 +286,7 @@ test("dragging a desk moves it to a new tile", async ({ page }) => {
 test("dragging the floor moves the camera, not the room", async ({ page }) => {
   const { canvas, problems } = await openStudio(page);
 
-  await addButton(page, "Electrical Adjustable Desk").click();
+  await add(page, "Desks", "Electrical Adjustable Desk");
 
   const desk = await findSprite(page, canvas);
   const box = await canvas.boundingBox();
@@ -272,7 +377,7 @@ test("a pinch zooms about the pointer while a scroll only pans", async ({
 }) => {
   const { canvas, problems } = await openStudio(page);
 
-  await addButton(page, "Electrical Adjustable Desk").click();
+  await add(page, "Desks", "Electrical Adjustable Desk");
 
   const desk = await findSprite(page, canvas);
   const box = await canvas.boundingBox();
@@ -304,20 +409,59 @@ test("a pinch zooms about the pointer while a scroll only pans", async ({
   expect(problems).toEqual([]);
 });
 
-test("removing the selected item takes it off the bill", async ({ page }) => {
+test("deleting from the canvas toolbar takes the item off the bill", async ({
+  page,
+}) => {
   const { problems } = await openStudio(page);
 
-  await addButton(page, "Electrical Adjustable Desk").click();
-  await addButton(page, "Ergonomic Office Chair").click();
+  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Chairs", "Ergonomic Office Chair");
 
   // Adding selects the new item, so the chair is the one that goes.
-  await page.getByRole("button", { name: "Remove selected" }).click();
+  await deleteSelected(page).click();
 
-  const summary = page
-    .getByRole("complementary")
-    .filter({ hasText: "Your setup" });
-  await expect(summary.getByText("Ergonomic Office Chair")).toBeHidden();
-  await expect(summary.getByText("Electrical Adjustable Desk")).toBeVisible();
+  await expect(summary(page).getByText("Ergonomic Office Chair")).toBeHidden();
+  await expect(
+    summary(page).getByText("Electrical Adjustable Desk"),
+  ).toBeVisible();
+
+  expect(problems).toEqual([]);
+});
+
+test("deleting a desk takes everything standing on it", async ({ page }) => {
+  const { canvas, problems } = await openStudio(page);
+
+  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Monitors", '27" 4K Multimedia Monitor');
+  await expect(
+    summary(page).getByText('27" 4K Multimedia Monitor'),
+  ).toBeVisible();
+
+  await selectDesk(page, canvas);
+  await deleteSelected(page).click();
+
+  // The monitor rested on the desk, so it went with it.
+  await expect(page.getByText("Nothing in the room yet")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Rent this setup" }),
+  ).toBeDisabled();
+  expect(problems).toEqual([]);
+});
+
+test("the toolbar follows the selection and goes away on deselect", async ({
+  page,
+}) => {
+  const { canvas, problems } = await openStudio(page);
+
+  await add(page, "Desks", "Electrical Adjustable Desk");
+  await expect(deleteSelected(page)).toBeVisible();
+
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("canvas has no box");
+
+  // Clicking empty floor clears the selection, and the toolbar with it.
+  await page.mouse.click(box.x + box.width * 0.1, box.y + box.height * 0.95);
+  await expect(deleteSelected(page)).toBeHidden();
 
   expect(problems).toEqual([]);
 });
@@ -325,17 +469,16 @@ test("removing the selected item takes it off the bill", async ({ page }) => {
 test("clearing empties the studio", async ({ page }) => {
   const { problems } = await openStudio(page);
 
-  await addButton(page, "Electrical Adjustable Desk").click();
-  await addButton(page, '27" 4K Multimedia Monitor').click();
+  await add(page, "Desks", "Electrical Adjustable Desk");
+  await add(page, "Monitors", '27" 4K Multimedia Monitor');
 
-  const summary = page
-    .getByRole("complementary")
-    .filter({ hasText: "Your setup" });
-  await expect(summary.getByText('27" 4K Multimedia Monitor')).toBeVisible();
+  await expect(
+    summary(page).getByText('27" 4K Multimedia Monitor'),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Clear" }).click();
 
-  await expect(page.getByText("Pick a desk to start")).toBeVisible();
+  await expect(page.getByText("Nothing in the room yet")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Rent this setup" }),
   ).toBeDisabled();
@@ -346,9 +489,10 @@ test("clearing empties the studio", async ({ page }) => {
 test("staging items never reach the bill", async ({ page }) => {
   const { problems } = await openStudio(page);
 
-  await addButton(page, "Monstera").click();
+  await add(page, "Staging", "Monstera");
 
-  await expect(page.getByText("Pick a desk to start")).toBeVisible();
+  // It is in the room, so the empty state is gone, but it is not billed.
+  await expect(page.getByText("Nothing in the room yet")).toBeHidden();
   await expect(
     page.getByRole("button", { name: "Rent this setup" }),
   ).toBeDisabled();

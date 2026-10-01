@@ -1,3 +1,4 @@
+import { getAsset } from "./assets";
 import catalog from "./catalog.json";
 import type { ProductCategory } from "./types";
 
@@ -57,6 +58,11 @@ export function assetIdFor(id: string): string | undefined {
   return BY_ID.get(id)?.assetId ?? DECOR_BY_ID.get(id)?.assetId;
 }
 
+/** Name for any catalog id, rental or staging. Falls back to the id itself. */
+export function displayName(id: string): string {
+  return BY_ID.get(id)?.name ?? DECOR_BY_ID.get(id)?.name ?? id;
+}
+
 export function productsIn(category: ProductCategory): RentalProduct[] {
   return PRODUCTS.filter((product) => product.category === category);
 }
@@ -69,3 +75,83 @@ export function fromPricePerWeek(product: RentalProduct): number {
 export function weeklyRate(product: RentalProduct, weeks: number): number {
   return weeks > 4 ? fromPricePerWeek(product) : product.pricePerWeek;
 }
+
+/** One row in the add-item dialog, flattening rentals and staging into one shape. */
+export type CatalogEntry = {
+  id: string;
+  name: string;
+  description: string;
+  /** Weekly rate, or null for staging items that never reach checkout. */
+  pricePerWeek: number | null;
+  /** Whether the item needs a desk to stand on. */
+  needsDesk: boolean;
+};
+
+export type CatalogGroup = {
+  /** Tab value, and the key the desk menu keys off. */
+  id: string;
+  label: string;
+  /** Wording for the desk menu, e.g. "Add monitor". */
+  addLabel: string;
+  entries: CatalogEntry[];
+};
+
+const GROUPS: {
+  id: string;
+  label: string;
+  addLabel: string;
+  category: ProductCategory;
+}[] = [
+  { id: "desk", label: "Desks", addLabel: "Add desk", category: "desk" },
+  { id: "chair", label: "Chairs", addLabel: "Add chair", category: "chair" },
+  {
+    id: "monitor",
+    label: "Monitors",
+    addLabel: "Add monitor",
+    category: "monitor",
+  },
+  {
+    id: "lighting",
+    label: "Lighting",
+    addLabel: "Add lamp",
+    category: "lighting",
+  },
+  { id: "extras", label: "Extras", addLabel: "Add extra", category: "extras" },
+];
+
+function entryOf(product: RentalProduct): CatalogEntry {
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    pricePerWeek: fromPricePerWeek(product),
+    needsDesk: getAsset(product.assetId).surface === "desk",
+  };
+}
+
+export const CATALOG_GROUPS: CatalogGroup[] = [
+  ...GROUPS.map((group) => ({
+    id: group.id,
+    label: group.label,
+    addLabel: group.addLabel,
+    entries: productsIn(group.category).map(entryOf),
+  })),
+  {
+    id: "staging",
+    label: "Staging",
+    addLabel: "Add staging",
+    entries: DECOR.map((item) => ({
+      id: item.id,
+      name: item.name,
+      description: "Sets the scene. Not part of the rental.",
+      pricePerWeek: null,
+      needsDesk: getAsset(item.assetId).surface === "desk",
+    })),
+  },
+].filter((group) => group.entries.length > 0);
+
+/** The groups a desk can host, for the menu on a selected desk. */
+export const DESK_GROUPS: CatalogGroup[] = CATALOG_GROUPS.map((group) => ({
+  ...group,
+  entries: group.entries.filter((entry) => entry.needsDesk),
+})).filter((group) => group.entries.length > 0);
