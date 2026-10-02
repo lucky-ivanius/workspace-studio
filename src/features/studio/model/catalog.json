@@ -318,7 +318,10 @@
       "id": "apple-mac-book-neo",
       "slug": "apple-mac-book-neo",
       "studio": {
-        "placeable": true
+        "placeable": true,
+        "footprint": { "w": 2, "d": 1 },
+        "heightCm": 20,
+        "surface": "desk"
       },
       "name": "Apple MacBook Neo",
       "brand": "Apple",
@@ -2560,7 +2563,9 @@
       "slug": "smart-led-desk-lamp-1-s",
       "studio": {
         "placeable": true,
-        "art": "lamp-smart-led"
+        "footprint": { "w": 1, "d": 1 },
+        "heightCm": 45,
+        "surface": "desk"
       },
       "name": "Smart LED Desk Lamp 1S",
       "brand": "Xiaomi",
@@ -5972,8 +5977,7 @@
       "id": "apple-magic-keyboard",
       "slug": "apple-magic-keyboard",
       "studio": {
-        "placeable": true,
-        "art": "keyboard-mx"
+        "placeable": true
       },
       "name": "Apple Magic Keyboard",
       "brand": "Apple",
