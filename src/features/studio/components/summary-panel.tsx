@@ -1,7 +1,7 @@
 "use client";
 
 import { MinusIcon, PlusIcon, ShoppingCartIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LONG_STAY_WEEKS } from "../model/catalog";
+import { RentSuccessDialog } from "./rent-success-dialog";
 import { useStudioStore } from "../state/store";
 import { formatUsd, formatWeeks, summarize } from "../state/summary";
 
@@ -37,6 +38,9 @@ export function SummaryPanel() {
   const addToCart = useStudioStore((state) => state.addToCart);
   const removeCopy = useStudioStore((state) => state.removeCopy);
   const clear = useStudioStore((state) => state.clear);
+
+  // Demo checkout: the button has nothing real to call, so it just confirms.
+  const [rented, setRented] = useState(false);
 
   const summary = useMemo(
     () => summarize(items, cart, rentalWeeks),
@@ -169,8 +173,15 @@ export function SummaryPanel() {
           </p>
         )}
 
-        <Button disabled={summary.itemCount === 0}>Rent this setup</Button>
+        <Button
+          disabled={summary.itemCount === 0}
+          onClick={() => setRented(true)}
+        >
+          Rent this setup
+        </Button>
       </div>
+
+      <RentSuccessDialog open={rented} onOpenChange={setRented} />
     </div>
   );
 }
