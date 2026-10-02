@@ -197,6 +197,16 @@ test("a floor item nearer the camera draws over a desk and everything on it", ()
   assert.ok(zIndexOf(plantBehind, items) < zIndexOf(desk, items));
 });
 
+test("a rug draws under the furniture standing on it", () => {
+  const rug = place("rug-woven", { x: 4, y: 4 });
+  const desk = place(DESK, { x: 6, y: 6 });
+  const keyboard = place(KEYBOARD, { x: 6, y: 6 }, desk.instanceId);
+  const items = [rug, desk, keyboard];
+
+  assert.ok(zIndexOf(desk, items) > zIndexOf(rug, items));
+  assert.ok(zIndexOf(keyboard, items) > zIndexOf(rug, items));
+});
+
 test("the room fills up and eventually refuses another desk", () => {
   const items: PlacedItem[] = [];
   const asset = art(DESK);
