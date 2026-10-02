@@ -12,9 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LONG_STAY_WEEKS } from "../model/catalog";
-import { RentSuccessDialog } from "./rent-success-dialog";
 import { useStudioStore } from "../state/store";
 import { formatUsd, formatWeeks, summarize } from "../state/summary";
+import { RentSuccessDialog } from "./rent-success-dialog";
 
 /**
  * Rental lengths worth offering, labelled so the tier is readable: everything
