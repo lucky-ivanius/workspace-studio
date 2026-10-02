@@ -6,6 +6,10 @@ An interactive studio for designing a Bali workspace from [monis.rent](https://m
 rental gear, then renting the whole setup. Pick a desk, add a chair, drop in
 monitors and a lamp, arrange everything on an isometric grid, and check out.
 
+The room is a pixi.js canvas with an isometric grid. Everything you place snaps
+to tiles, items can sit on top of other items (a monitor on a desk), and the
+scene depth-sorts as you drag things around.
+
 ## Getting started
 
 ```bash
@@ -15,13 +19,6 @@ pnpm dev
 ```
 
 Open http://localhost:3000.
-
-## Docs
-
-- [docs/FOUNDATION.md](./docs/FOUNDATION.md) — architecture, the isometric grid,
-  the asset contract, and the product data pipeline. **Read this before adding
-  art or products.**
-- [docs/REQUIREMENTS.md](./docs/REQUIREMENTS.md) — the brief.
 
 ## Commands
 
