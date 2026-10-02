@@ -144,7 +144,7 @@ function ProductInfo({
           rel="noreferrer"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
-          View on monis.rent
+          View
           <ExternalLinkIcon className="size-3.5" />
         </a>
 

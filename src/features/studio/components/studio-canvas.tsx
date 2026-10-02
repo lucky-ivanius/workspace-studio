@@ -123,11 +123,7 @@ export function StudioCanvas() {
 
       {ready && !isEmpty && (
         <div className="absolute top-3 left-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPickingForDesk("")}
-          >
+          <Button size="lg" onClick={() => setPickingForDesk("")}>
             <PlusIcon data-icon="inline-start" />
             Add item
           </Button>

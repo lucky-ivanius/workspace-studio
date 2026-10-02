@@ -6,7 +6,7 @@ import { formatUsd, formatWeeks, summarize } from "./summary";
 
 /** Named by role, so the monis.rent slugs live in one place. */
 const DESK = "electrical-adjustable-desk";
-const MONITOR = "27-4-k-multimedia-monitor";
+const KEYBOARD = "apple-magic-keyboard";
 const PLANT = "plant-monstera";
 
 let nextOrdinal = 0;
@@ -39,7 +39,7 @@ test("an empty studio costs nothing", () => {
 
 test("duplicates collapse into one line with a quantity", () => {
   const summary = summarize(
-    [place(MONITOR), place(MONITOR), place(DESK)],
+    [place(KEYBOARD), place(KEYBOARD), place(DESK)],
     [],
     2,
   );
@@ -47,35 +47,35 @@ test("duplicates collapse into one line with a quantity", () => {
   assert.equal(summary.lines.length, 2);
   assert.equal(summary.itemCount, 3);
 
-  const monitors = summary.lines.find((line) => line.product.id === MONITOR);
-  assert.ok(monitors);
-  assert.equal(monitors.quantity, 2);
-  assert.equal(monitors.weeklyTotal, monitors.ratePerWeek * 2);
-  assert.equal(monitors.inCart, 0);
+  const keyboards = summary.lines.find((line) => line.product.id === KEYBOARD);
+  assert.ok(keyboards);
+  assert.equal(keyboards.quantity, 2);
+  assert.equal(keyboards.weeklyTotal, keyboards.ratePerWeek * 2);
+  assert.equal(keyboards.inCart, 0);
 });
 
 test("a cart item is billed even though it is not in the room", () => {
-  const monitor = product(MONITOR);
-  const summary = summarize([], [{ productId: monitor.id, quantity: 2 }], 2);
+  const keyboard = product(KEYBOARD);
+  const summary = summarize([], [{ productId: keyboard.id, quantity: 2 }], 2);
 
   assert.equal(summary.lines.length, 1);
   assert.equal(summary.itemCount, 2);
   assert.equal(summary.lines[0].inCart, 2);
-  assert.equal(summary.perWeek, monitor.pricePerWeek * 2);
+  assert.equal(summary.perWeek, keyboard.pricePerWeek * 2);
 });
 
 test("a product in the room and in the cart shares one line", () => {
-  const monitor = product(MONITOR);
+  const keyboard = product(KEYBOARD);
   const summary = summarize(
-    [place(monitor.id)],
-    [{ productId: monitor.id, quantity: 2 }],
+    [place(keyboard.id)],
+    [{ productId: keyboard.id, quantity: 2 }],
     2,
   );
 
   assert.equal(summary.lines.length, 1);
   assert.equal(summary.lines[0].quantity, 3);
   assert.equal(summary.lines[0].inCart, 2);
-  assert.equal(summary.perWeek, monitor.pricePerWeek * 3);
+  assert.equal(summary.perWeek, keyboard.pricePerWeek * 3);
 });
 
 test("staging items never reach checkout", () => {

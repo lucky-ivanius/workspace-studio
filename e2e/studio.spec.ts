@@ -238,7 +238,7 @@ test("a desk accessory offers the cart when there is no desk", async ({
 }) => {
   const { problems } = await openStudio(page);
 
-  const dialog = await pick(page, `27" 4K Multimedia Monitor`);
+  const dialog = await pick(page, `34" 4K Gaming Monitor`);
 
   await expect(page.getByText("There's no desk")).toBeVisible();
   await page.getByRole("button", { name: "Add to cart" }).click();
@@ -263,7 +263,7 @@ test("a desk accessory offers the cart when there is no desk", async ({
 test("declining the cart leaves the setup untouched", async ({ page }) => {
   const { problems } = await openStudio(page);
 
-  const dialog = await pick(page, `27" 4K Multimedia Monitor`);
+  const dialog = await pick(page, `34" 4K Gaming Monitor`);
   await page.getByRole("button", { name: "Cancel" }).click();
 
   // Still picking, so a desk is one click away rather than a reopen away.
@@ -308,15 +308,13 @@ test("adding a desk, a chair and a monitor builds the bill", async ({
 
   await add(page, "Electrical Adjustable Desk");
   await add(page, "Ergonomic Office Chair");
-  await add(page, `27" 4K Multimedia Monitor`);
+  await add(page, `34" 4K Gaming Monitor`);
 
   await expect(
     summary(page).getByText("Electrical Adjustable Desk"),
   ).toBeVisible();
   await expect(summary(page).getByText("Ergonomic Office Chair")).toBeVisible();
-  await expect(
-    summary(page).getByText('27" 4K Multimedia Monitor'),
-  ).toBeVisible();
+  await expect(summary(page).getByText('34" 4K Gaming Monitor')).toBeVisible();
   // All three fitted, so nothing fell through to the cart.
   await expect(summary(page).getByText("in cart")).toBeHidden();
 
@@ -385,9 +383,7 @@ test("the info dialog shows the spec sheet and can add from there", async ({
   await expect(sheet.getByText("Specifications")).toBeVisible();
   await expect(sheet.getByText("What's included")).toBeVisible();
   await expect(sheet.getByText("Refundable deposit")).toBeVisible();
-  await expect(
-    sheet.getByRole("link", { name: "View on monis.rent" }),
-  ).toBeVisible();
+  await expect(sheet.getByRole("link", { name: "View" })).toBeVisible();
 
   await sheet.getByRole("button", { name: /^Add for / }).click();
 
@@ -409,7 +405,7 @@ test("a category filters the grid in place and search cuts across all of them", 
 
   const cards = dialog.getByRole("button", { name: /^Add / });
   const all = await cards.count();
-  expect(all).toBeGreaterThan(20);
+  expect(all).toBeGreaterThan(10);
 
   // Picking a category narrows the same grid rather than scrolling to a section.
   await dialog.getByRole("button", { name: /^Monitors/ }).click();
@@ -425,13 +421,13 @@ test("a category filters the grid in place and search cuts across all of them", 
 
   // A product from another category is gone rather than merely scrolled past.
   await expect(
-    dialog.getByRole("button", { name: /Add.*PlayStation/i }),
+    dialog.getByRole("button", { name: /Add.*MacBook/i }),
   ).toHaveCount(0);
 
   // Search reaches past the active category rather than within it.
-  await dialog.getByPlaceholder("Search products").fill("playstation");
+  await dialog.getByPlaceholder("Search products").fill("macbook");
   await expect(
-    dialog.getByRole("button", { name: /playstation/i }).first(),
+    dialog.getByRole("button", { name: /macbook/i }).first(),
   ).toBeVisible();
 
   expect(problems).toEqual([]);
@@ -456,7 +452,10 @@ test("changing the category puts the list back at the top", async ({
   await dialog.getByRole("button", { name: /^Monitors/ }).click();
   await expect.poll(scrollTop).toBe(0);
 
-  // And the same on the way back out to everything.
+  // And the same on the way back out to everything, from a category with
+  // enough cards to scroll.
+  await dialog.getByRole("button", { name: /^Office Accessories/ }).click();
+  await expect.poll(scrollTop).toBe(0);
   await list.evaluate((element) => element.scrollTo({ top: 300 }));
   await expect.poll(scrollTop).toBeGreaterThan(0);
 
@@ -520,7 +519,7 @@ test("stepping a line up rents another copy without drawing it", async ({
   page,
 }) => {
   const { canvas, problems } = await openStudio(page);
-  const monitor = `27" 4K Multimedia Monitor`;
+  const monitor = `34" 4K Gaming Monitor`;
 
   await add(page, "Electrical Adjustable Desk");
   await add(page, monitor);
@@ -563,7 +562,7 @@ test("stepping a line down gives back the cart copy before the room's", async ({
   page,
 }) => {
   const { problems } = await openStudio(page);
-  const monitor = `27" 4K Multimedia Monitor`;
+  const monitor = `34" 4K Gaming Monitor`;
 
   await add(page, "Electrical Adjustable Desk");
   await add(page, monitor);
@@ -597,7 +596,7 @@ test("stepping a desk down leaves what stood on it rented", async ({
   page,
 }) => {
   const { problems } = await openStudio(page);
-  const monitor = `27" 4K Multimedia Monitor`;
+  const monitor = `34" 4K Gaming Monitor`;
 
   await add(page, "Electrical Adjustable Desk");
   await add(page, monitor);
@@ -649,7 +648,7 @@ test("dragging a desk carries what stands on it", async ({ page }) => {
   const { canvas, problems } = await openStudio(page);
 
   await add(page, "Electrical Adjustable Desk");
-  await add(page, `27" 4K Multimedia Monitor`);
+  await add(page, `34" 4K Gaming Monitor`);
 
   // Adding selects the monitor, so its toolbar already marks where it stands.
   const monitorBefore = await toolbarAnchor(page);
@@ -838,7 +837,7 @@ test("deleting a desk keeps what stood on it, in the cart", async ({
   page,
 }) => {
   const { canvas, problems } = await openStudio(page);
-  const monitor = `27" 4K Multimedia Monitor`;
+  const monitor = `34" 4K Gaming Monitor`;
 
   await add(page, "Electrical Adjustable Desk");
   await add(page, monitor);
@@ -886,11 +885,9 @@ test("clearing empties the studio", async ({ page }) => {
   const { problems } = await openStudio(page);
 
   await add(page, "Electrical Adjustable Desk");
-  await add(page, `27" 4K Multimedia Monitor`);
+  await add(page, `34" 4K Gaming Monitor`);
 
-  await expect(
-    summary(page).getByText('27" 4K Multimedia Monitor'),
-  ).toBeVisible();
+  await expect(summary(page).getByText('34" 4K Gaming Monitor')).toBeVisible();
 
   await page.getByRole("button", { name: "Clear" }).click();
 
