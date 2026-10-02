@@ -41,9 +41,17 @@ test("a product is drawn with art named after its slug", () => {
 });
 
 test("a product can borrow a drawing shared with its siblings", () => {
-  // Six 27" panels look the same on an isometric desk whoever made them.
-  assert.equal(artFor("27-4-k-multimedia-monitor")?.id, "monitor-27-4k");
-  assert.equal(artFor("apple-studio-display")?.id, "monitor-27-4k");
+  // Six 27" panels look the same on an isometric desk whoever made them. The
+  // subject is synthetic because no current product borrows one, but the rule
+  // is data-driven and stays covered.
+  assert.equal(
+    artOf({
+      id: "a-monitor-like-any-other",
+      categoryIds: ["monitors"],
+      studio: { placeable: true, art: "generic-screen" },
+    })?.id,
+    "generic-screen",
+  );
 });
 
 test("a placeable product with no art of its own borrows its category's stand-in", () => {
@@ -136,7 +144,7 @@ test("the desk, the chair and the monitors a workspace is built from are placeab
   for (const id of [
     "electrical-adjustable-desk",
     "ergonomic-office-chair",
-    "27-4-k-multimedia-monitor",
+    "34-4-k-curved-monitor-180-hz",
     "smart-led-desk-lamp-1-s",
     "plant-monstera",
   ]) {

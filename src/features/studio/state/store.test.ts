@@ -7,7 +7,7 @@ import { useStudioStore } from "./store";
  * than repeating monis.rent slugs at thirty call sites.
  */
 const DESK = "electrical-adjustable-desk";
-const MONITOR = "27-4-k-multimedia-monitor";
+const KEYBOARD = "apple-magic-keyboard";
 const ULTRAWIDE = "34-4-k-curved-monitor-180-hz";
 const LAMP = "smart-led-desk-lamp-1-s";
 const PLANT = "plant-monstera";
@@ -44,13 +44,13 @@ test("adding a product places it and selects it", () => {
 });
 
 test("a desk accessory asks for a desk until one exists", () => {
-  assert.deepEqual(store().addProduct(MONITOR), {
+  assert.deepEqual(store().addProduct(KEYBOARD), {
     status: "needs-desk",
   });
   assert.equal(store().items.length, 0);
 
   place(DESK);
-  place(MONITOR);
+  place(KEYBOARD);
 
   assert.equal(store().items.length, 2);
   assert.equal(store().items[1].surface, "desk");
@@ -102,10 +102,10 @@ test("a desk item prefers the desk it was added from", () => {
   const second = place(DESK);
   store().moveItem(second, { x: 0, y: 8 });
 
-  const monitor = place(MONITOR, second);
+  const keyboard = place(KEYBOARD, second);
 
   assert.equal(
-    store().items.find((item) => item.instanceId === monitor)?.hostId,
+    store().items.find((item) => item.instanceId === keyboard)?.hostId,
     second,
   );
 });
@@ -158,14 +158,14 @@ test("a move onto another item is refused and changes nothing", () => {
 
 test("a desk item dragged off every desk stays put", () => {
   place(DESK);
-  const monitor = place(MONITOR);
+  const keyboard = place(KEYBOARD);
 
   const before = store().items.find(
-    (item) => item.instanceId === monitor,
+    (item) => item.instanceId === keyboard,
   )?.cell;
-  assert.equal(store().moveItem(monitor, { x: 20, y: 20 }), false);
+  assert.equal(store().moveItem(keyboard, { x: 20, y: 20 }), false);
   assert.deepEqual(
-    store().items.find((item) => item.instanceId === monitor)?.cell,
+    store().items.find((item) => item.instanceId === keyboard)?.cell,
     before,
   );
 });
@@ -176,16 +176,16 @@ test("moving a missing item is a no-op", () => {
 
 test("moving a desk carries whatever stands on it", () => {
   const desk = place(DESK);
-  const monitor = place(MONITOR);
+  const keyboard = place(KEYBOARD);
   const lamp = place(LAMP);
 
   const cellOf = (id: string) =>
     store().items.find((item) => item.instanceId === id)?.cell;
 
   const deskBefore = cellOf(desk);
-  const monitorBefore = cellOf(monitor);
+  const keyboardBefore = cellOf(keyboard);
   const lampBefore = cellOf(lamp);
-  assert.ok(deskBefore && monitorBefore && lampBefore);
+  assert.ok(deskBefore && keyboardBefore && lampBefore);
 
   assert.equal(store().moveItem(desk, { x: 1, y: 2 }), true);
 
@@ -196,9 +196,9 @@ test("moving a desk carries whatever stands on it", () => {
     y: 2 - deskBefore.y,
   };
   assert.deepEqual(cellOf(desk), { x: 1, y: 2 });
-  assert.deepEqual(cellOf(monitor), {
-    x: monitorBefore.x + shift.x,
-    y: monitorBefore.y + shift.y,
+  assert.deepEqual(cellOf(keyboard), {
+    x: keyboardBefore.x + shift.x,
+    y: keyboardBefore.y + shift.y,
   });
   assert.deepEqual(cellOf(lamp), {
     x: lampBefore.x + shift.x,
@@ -208,19 +208,19 @@ test("moving a desk carries whatever stands on it", () => {
 
 test("a desk's riders stay on it through a clamped move", () => {
   const desk = place(DESK);
-  const monitor = place(MONITOR);
+  const keyboard = place(KEYBOARD);
 
-  // Far outside the room, so the desk clamps and the monitor must follow the
+  // Far outside the room, so the desk clamps and the keyboard must follow the
   // clamped cell rather than the one that was asked for.
   assert.equal(store().moveItem(desk, { x: 99, y: 99 }), true);
 
   const moved = store().items.find((item) => item.instanceId === desk);
-  const rider = store().items.find((item) => item.instanceId === monitor);
+  const rider = store().items.find((item) => item.instanceId === keyboard);
   assert.ok(moved && rider);
 
   assert.deepEqual(moved.cell, { x: 16, y: 20 });
   assert.equal(rider.hostId, desk);
-  // The monitor sat at the desk's origin, so it rides at the clamped origin.
+  // The keyboard sat at the desk's origin, so it rides at the clamped origin.
   assert.deepEqual(rider.cell, { x: 16, y: 20 });
 });
 
@@ -229,23 +229,23 @@ test("a refused desk move leaves its riders alone", () => {
   store().moveItem(first, { x: 0, y: 0 });
 
   const second = place(DESK);
-  const monitor = place(MONITOR, second);
+  const keyboard = place(KEYBOARD, second);
 
   const before = store().items.find(
-    (item) => item.instanceId === monitor,
+    (item) => item.instanceId === keyboard,
   )?.cell;
 
   // The second desk cannot land on the first, so nothing it carries may move.
   assert.equal(store().moveItem(second, { x: 0, y: 0 }), false);
   assert.deepEqual(
-    store().items.find((item) => item.instanceId === monitor)?.cell,
+    store().items.find((item) => item.instanceId === keyboard)?.cell,
     before,
   );
 });
 
 test("removing a desk sends whatever sat on it to the cart", () => {
   const desk = place(DESK);
-  place(MONITOR);
+  place(KEYBOARD);
   place(LAMP);
   place(PLANT);
   assert.equal(store().items.length, 4);
@@ -256,30 +256,30 @@ test("removing a desk sends whatever sat on it to the cart", () => {
   assert.equal(store().items.length, 1);
   assert.equal(store().items[0].productId, PLANT);
 
-  // The monitor and the lamp lost their surface, not their place on the bill.
+  // The keyboard and the lamp lost their surface, not their place on the bill.
   assert.deepEqual(store().cart, [
-    { productId: MONITOR, quantity: 1 },
+    { productId: KEYBOARD, quantity: 1 },
     { productId: LAMP, quantity: 1 },
   ]);
 });
 
 test("each copy on a desk is carted, so the quantity survives", () => {
   const desk = place(DESK);
-  place(MONITOR);
-  place(MONITOR);
+  place(KEYBOARD);
+  place(KEYBOARD);
 
   store().removeItem(desk);
 
   assert.deepEqual(store().items, []);
-  assert.deepEqual(store().cart, [{ productId: MONITOR, quantity: 2 }]);
+  assert.deepEqual(store().cart, [{ productId: KEYBOARD, quantity: 2 }]);
 });
 
 test("removing a desk clears a selection that was standing on it", () => {
   place(DESK);
-  const monitor = place(MONITOR);
-  assert.equal(store().selectedId, monitor);
+  const keyboard = place(KEYBOARD);
+  assert.equal(store().selectedId, keyboard);
 
-  // The desk goes while the monitor is the selection, so the toolbar would
+  // The desk goes while the keyboard is the selection, so the toolbar would
   // otherwise be left pointing at an item that is no longer drawn.
   store().removeCopy(DESK);
   assert.equal(store().selectedId, null);
@@ -293,71 +293,71 @@ test("removing the selected item clears the selection", () => {
 });
 
 test("the cart stacks duplicates and gives them back one at a time", () => {
-  store().addToCart(MONITOR);
-  store().addToCart(MONITOR);
+  store().addToCart(KEYBOARD);
+  store().addToCart(KEYBOARD);
   store().addToCart(LAMP);
 
   assert.deepEqual(store().cart, [
-    { productId: MONITOR, quantity: 2 },
+    { productId: KEYBOARD, quantity: 2 },
     { productId: LAMP, quantity: 1 },
   ]);
 
   // Nothing is placed, so the cart is the only record of these.
   assert.equal(store().items.length, 0);
 
-  store().removeCopy(MONITOR);
+  store().removeCopy(KEYBOARD);
   assert.deepEqual(store().cart, [
-    { productId: MONITOR, quantity: 1 },
+    { productId: KEYBOARD, quantity: 1 },
     { productId: LAMP, quantity: 1 },
   ]);
 
-  store().removeCopy(MONITOR);
+  store().removeCopy(KEYBOARD);
   assert.deepEqual(store().cart, [{ productId: LAMP, quantity: 1 }]);
 });
 
 test("a cart copy is given back before anything in the room", () => {
   place(DESK);
-  const first = place(MONITOR);
+  const first = place(KEYBOARD);
   // The `+` on a summary line, which rents another without drawing it.
-  store().addToCart(MONITOR);
-  const second = place(MONITOR);
+  store().addToCart(KEYBOARD);
+  const second = place(KEYBOARD);
 
   assert.equal(store().items.length, 3);
-  assert.deepEqual(store().cart, [{ productId: MONITOR, quantity: 1 }]);
+  assert.deepEqual(store().cart, [{ productId: KEYBOARD, quantity: 1 }]);
 
   // The cart copy costs nothing to give back, so the room is left alone.
-  store().removeCopy(MONITOR);
+  store().removeCopy(KEYBOARD);
   assert.deepEqual(store().cart, []);
   assert.equal(store().items.length, 3);
 
   // Only now does a sprite go, and it is the newest one.
-  store().removeCopy(MONITOR);
+  store().removeCopy(KEYBOARD);
   assert.deepEqual(
     store()
-      .items.filter((item) => item.productId === MONITOR)
+      .items.filter((item) => item.productId === KEYBOARD)
       .map((item) => item.instanceId),
     [first],
   );
   assert.ok(
     !store().items.some((item) => item.instanceId === second),
-    "the newest monitor should be the one that went",
+    "the newest keyboard should be the one that went",
   );
 });
 
 test("the last copy of a product leaves the setup entirely", () => {
   place(DESK);
-  const monitor = place(MONITOR);
+  const keyboard = place(KEYBOARD);
 
-  store().removeCopy(MONITOR);
+  store().removeCopy(KEYBOARD);
 
-  assert.ok(!store().items.some((item) => item.instanceId === monitor));
+  assert.ok(!store().items.some((item) => item.instanceId === keyboard));
   assert.equal(store().selectedId, null);
 });
 
 test("giving back a copy of something nobody has is a no-op", () => {
   place(DESK);
 
-  store().removeCopy(MONITOR);
+  store().removeCopy(KEYBOARD);
 
   assert.equal(store().items.length, 1);
   assert.deepEqual(store().cart, []);
@@ -365,23 +365,23 @@ test("giving back a copy of something nobody has is a no-op", () => {
 
 test("giving back a desk carts whatever stands on it", () => {
   place(DESK);
-  place(MONITOR);
+  place(KEYBOARD);
 
   store().removeCopy(DESK);
 
-  // The desk is off the canvas and off the bill, and the monitor is still
+  // The desk is off the canvas and off the bill, and the keyboard is still
   // rented: `-` on the desk line may only change the desk's own quantity.
   assert.deepEqual(store().items, []);
-  assert.deepEqual(store().cart, [{ productId: MONITOR, quantity: 1 }]);
+  assert.deepEqual(store().cart, [{ productId: KEYBOARD, quantity: 1 }]);
 });
 
 test("a carted rider is given back by its own line, one click", () => {
   place(DESK);
-  place(MONITOR);
+  place(KEYBOARD);
   store().removeCopy(DESK);
 
-  // It is a cart copy now, so the next `-` on the monitor needs no sprite.
-  store().removeCopy(MONITOR);
+  // It is a cart copy now, so the next `-` on the keyboard needs no sprite.
+  store().removeCopy(KEYBOARD);
 
   assert.deepEqual(store().cart, []);
   assert.deepEqual(store().items, []);
@@ -400,7 +400,7 @@ test("a staging item never reaches the cart", () => {
 
 test("clearing empties the room and the cart alike", () => {
   place(DESK);
-  store().addToCart(MONITOR);
+  store().addToCart(KEYBOARD);
 
   store().clear();
 

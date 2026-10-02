@@ -46,14 +46,16 @@ test("asset ids are unique", () => {
 });
 
 test("the declared size is derived from the footprint and height", () => {
-  // A 3x1 monitor 50 cm tall: span 4, so 128 wide, 64 of base plus 80 of body.
-  const monitor = ASSET_LIST.find((spec) => spec.id === "monitor-27-4k");
-  assert.ok(monitor);
+  // An 8x4 desk 75 cm tall: span 12, so 384 wide, 192 of base plus 120 of body.
+  const desk = ASSET_LIST.find(
+    (spec) => spec.id === "electrical-adjustable-desk",
+  );
+  assert.ok(desk);
 
-  assert.equal(monitor.width, 128);
-  assert.equal(monitor.height, 144);
-  assert.deepEqual(monitor.anchor, { x: 64, y: 112 });
-  assert.deepEqual(sourcePixelSize(monitor), { width: 256, height: 288 });
+  assert.equal(desk.width, 384);
+  assert.equal(desk.height, 312);
+  assert.deepEqual(desk.anchor, { x: 192, y: 216 });
+  assert.deepEqual(sourcePixelSize(desk), { width: 768, height: 624 });
 });
 
 test("a footprint maps to real centimetres", () => {

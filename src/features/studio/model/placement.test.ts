@@ -7,7 +7,7 @@ import type { PlacedItem } from "./types";
 
 /** Product ids, as the store and the catalogue know them. */
 const DESK = "electrical-adjustable-desk";
-const MONITOR = "27-4-k-multimedia-monitor";
+const KEYBOARD = "apple-magic-keyboard";
 const PLANT = "plant-monstera";
 const CHAIR = "ergonomic-office-chair";
 const LAMP = "smart-led-desk-lamp-1-s";
@@ -41,12 +41,12 @@ function place(
 }
 
 test("a desk-mounted item has nowhere to go until a desk exists", () => {
-  assert.equal(findPlacement([], art(MONITOR)), undefined);
+  assert.equal(findPlacement([], art(KEYBOARD)), undefined);
 });
 
-test("a monitor lands on the desk that is already in the room", () => {
+test("a keyboard lands on the desk that is already in the room", () => {
   const desk = place(DESK, { x: 0, y: 0 });
-  const placement = findPlacement([desk], art(MONITOR));
+  const placement = findPlacement([desk], art(KEYBOARD));
 
   assert.deepEqual(placement, {
     cell: { x: 0, y: 0 },
@@ -99,22 +99,22 @@ test("a desk item must stay within its desk", () => {
   const onDesk = { surface: "desk" as const, hostId: desk.instanceId };
 
   assert.equal(
-    canPlace([desk], art(MONITOR), {
+    canPlace([desk], art(KEYBOARD), {
       cell: { x: 2, y: 1 },
       ...onDesk,
     }),
     true,
   );
-  // The desk ends at x=8, so a 3-wide monitor cannot start at x=6.
+  // The desk ends at x=8, so a 2-wide keyboard cannot start at x=7.
   assert.equal(
-    canPlace([desk], art(MONITOR), {
-      cell: { x: 6, y: 0 },
+    canPlace([desk], art(KEYBOARD), {
+      cell: { x: 7, y: 0 },
       ...onDesk,
     }),
     false,
   );
   assert.equal(
-    canPlace([desk], art(MONITOR), {
+    canPlace([desk], art(KEYBOARD), {
       cell: { x: 0, y: 4 },
       ...onDesk,
     }),
@@ -122,15 +122,15 @@ test("a desk item must stay within its desk", () => {
   );
 });
 
-test("a monitor and a lamp leave most of the desk free", () => {
+test("a keyboard and a lamp leave most of the desk free", () => {
   const desk = place(DESK, { x: 0, y: 0 });
   const surface = art(DESK).deskSurface;
   assert.ok(surface);
 
-  const monitor = art(MONITOR).footprint;
+  const keyboard = art(KEYBOARD).footprint;
   const lamp = art(LAMP).footprint;
   const slots = surface.footprint.w * surface.footprint.d;
-  const taken = monitor.w * monitor.d + lamp.w * lamp.d;
+  const taken = keyboard.w * keyboard.d + lamp.w * lamp.d;
 
   assert.equal(slots, 32);
   assert.ok(taken / slots < 0.2, `${taken} of ${slots} slots is too much`);
@@ -138,15 +138,15 @@ test("a monitor and a lamp leave most of the desk free", () => {
   // Both still fit side by side, back row.
   const onDesk = { surface: "desk" as const, hostId: desk.instanceId };
   assert.equal(
-    canPlace([desk], art(MONITOR), {
+    canPlace([desk], art(KEYBOARD), {
       cell: { x: 0, y: 0 },
       ...onDesk,
     }),
     true,
   );
-  const withMonitor = [desk, place(MONITOR, { x: 0, y: 0 }, desk.instanceId)];
+  const withKeyboard = [desk, place(KEYBOARD, { x: 0, y: 0 }, desk.instanceId)];
   assert.equal(
-    canPlace(withMonitor, art(LAMP), {
+    canPlace(withKeyboard, art(LAMP), {
       cell: { x: 3, y: 0 },
       ...onDesk,
     }),
@@ -158,7 +158,7 @@ test("a desk item needs a host that exists", () => {
   const desk = place(DESK, { x: 0, y: 0 });
 
   assert.equal(
-    canPlace([desk], art(MONITOR), {
+    canPlace([desk], art(KEYBOARD), {
       cell: { x: 0, y: 0 },
       surface: "desk",
       hostId: "nope",
@@ -178,22 +178,22 @@ test("the desk under a cell is reported, and only within its footprint", () => {
 
 test("an item on a desk draws over that desk", () => {
   const desk = place(DESK, { x: 0, y: 0 });
-  const monitor = place(MONITOR, { x: 0, y: 0 }, desk.instanceId);
-  const items = [desk, monitor];
+  const keyboard = place(KEYBOARD, { x: 0, y: 0 }, desk.instanceId);
+  const items = [desk, keyboard];
 
-  assert.ok(zIndexOf(monitor, items) > zIndexOf(desk, items));
+  assert.ok(zIndexOf(keyboard, items) > zIndexOf(desk, items));
 });
 
 test("a floor item nearer the camera draws over a desk and everything on it", () => {
   const desk = place(DESK, { x: 0, y: 0 });
-  const monitor = place(MONITOR, { x: 0, y: 0 }, desk.instanceId);
+  const keyboard = place(KEYBOARD, { x: 0, y: 0 }, desk.instanceId);
   // Depth runs along the x+y diagonal, so a 2x2 plant at (6,6) reaches 16,
   // past the desk's front corner at x+w+y+d = 12, and (0,2) stops short at 6.
   const plantInFront = place(PLANT, { x: 6, y: 6 });
   const plantBehind = place(PLANT, { x: 0, y: 2 });
-  const items = [desk, monitor, plantInFront, plantBehind];
+  const items = [desk, keyboard, plantInFront, plantBehind];
 
-  assert.ok(zIndexOf(plantInFront, items) > zIndexOf(monitor, items));
+  assert.ok(zIndexOf(plantInFront, items) > zIndexOf(keyboard, items));
   assert.ok(zIndexOf(plantBehind, items) < zIndexOf(desk, items));
 });
 
