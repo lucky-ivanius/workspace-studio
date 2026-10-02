@@ -76,14 +76,19 @@ export function elevationOf(item: PlacedItem, items: PlacedItem[]): number {
 /**
  * Draw order follows the support hierarchy first, then isometric depth. Keying a
  * desk item off its host means it always draws over that desk, while a floor
- * item one tile nearer the camera still draws over both.
+ * item one tile nearer the camera still draws over both. Flat items sort by
+ * their rearmost tile, so anything standing on a rug draws over the rug instead
+ * of the rug's long front edge winning the sort.
  */
 const HOST_STEP = 100_000;
 const SURFACE_OFFSET = 1_000;
 const ITEM_STEP = 100;
 
 export function zIndexOf(item: PlacedItem, items: PlacedItem[]): number {
-  const own = footprintDepth(item.cell, assetOf(item).footprint);
+  const asset = assetOf(item);
+  const own = asset.flat
+    ? item.cell.x + item.cell.y + 2
+    : footprintDepth(item.cell, asset.footprint);
   const tieBreak = item.ordinal % ITEM_STEP;
 
   if (item.surface === "desk" && item.hostId) {
