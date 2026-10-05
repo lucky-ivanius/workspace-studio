@@ -21,6 +21,7 @@ import { useAddFlow } from "../state/use-add-flow";
 import { AddItemDialog } from "./add-item-dialog";
 import { AddToCartDialog } from "./add-to-cart-dialog";
 import { SelectionToolbar } from "./selection-toolbar";
+import { ViewControls } from "./view-controls";
 import { ZoomMenu } from "./zoom-menu";
 
 export function StudioCanvas() {
@@ -44,6 +45,7 @@ export function StudioCanvas() {
 
   const isEmpty = useStudioStore((state) => state.items.length === 0);
   const removeItem = useStudioStore((state) => state.removeItem);
+  const rotateItem = useStudioStore((state) => state.rotateItem);
   const { add, confirm, cancel, pending } = useAddFlow();
 
   useEffect(() => {
@@ -90,6 +92,7 @@ export function StudioCanvas() {
     zoomOut: () => sceneRef.current?.zoomOut(),
     zoomTo: (zoom: number) => sceneRef.current?.zoomTo(zoom),
     zoomToFit: () => sceneRef.current?.zoomToFit(),
+    rotateView: () => sceneRef.current?.rotateView(),
   }).current;
 
   const ready = status === "ready";
@@ -134,13 +137,15 @@ export function StudioCanvas() {
       {ready && anchor && !anchor.dragging && (
         <SelectionToolbar
           anchor={anchor}
+          onRotate={() => rotateItem(anchor.instanceId)}
           onRemove={() => removeItem(anchor.instanceId)}
           onAdd={setPickingForDesk}
         />
       )}
 
       {ready && (
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          <ViewControls commands={commands} />
           <ZoomMenu camera={camera} commands={commands} />
         </div>
       )}

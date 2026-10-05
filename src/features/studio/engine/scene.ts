@@ -18,8 +18,15 @@ import {
   screenToTile,
   tileDiamond,
 } from "../model/grid";
-import { assetOf, elevationOf, zIndexOf } from "../model/placement";
-import type { PlacedItem } from "../model/types";
+import {
+  assetOf,
+  canRotate,
+  elevationOf,
+  footprintOf,
+  zIndexOf,
+} from "../model/placement";
+import type { PlacedItem, QuarterTurns } from "../model/types";
+import { rotatedClockwise, viewState } from "../model/view";
 import { loadStudioAssets } from "./assets";
 
 /** Everything the zoom control needs to render itself. */
@@ -40,6 +47,11 @@ export type SelectionAnchor = {
   y: number;
   /** Desks get the extra "add to this desk" menu. */
   isDesk: boolean;
+  /**
+   * False when the item's tiles cannot take a clockwise turn where they
+   * stand, which is what disables the toolbar's rotate button.
+   */
+  canRotate: boolean;
   /** True mid-drag, so the toolbar can step out of the way. */
   dragging: boolean;
 };
@@ -108,6 +120,7 @@ function sameAnchor(
     a.x === b.x &&
     a.y === b.y &&
     a.isDesk === b.isDesk &&
+    a.canRotate === b.canRotate &&
     a.dragging === b.dragging
   );
 }
@@ -122,7 +135,7 @@ function anchorOf(
   instanceId: string,
   item: PlacedItem,
   draggingId: string | undefined,
-): SelectionAnchor {
+): Omit<SelectionAnchor, "canRotate"> {
   const bounds = sprite.getBounds();
   return {
     instanceId,
@@ -145,6 +158,8 @@ export class StudioScene {
   private pan: PanState | undefined;
   /** World point held at the middle of the view. Panning moves it. */
   private focus: ScreenPoint = roomCenter();
+  /** Quarter turns clockwise from the front view. */
+  private turns: QuarterTurns = 0;
   /** While true, a resize re-fits the zoom instead of preserving it. */
   private followFit = true;
   private items: PlacedItem[] = [];
@@ -253,13 +268,19 @@ export class StudioScene {
   }
 
   private positionSprite(sprite: Sprite, item: PlacedItem): void {
-    const asset = assetOf(item);
     const elevation = elevationOf(item, this.items);
-    const point = anchorToScreen(item.cell, asset.footprint, elevation);
+    const point = anchorToScreen(item.cell, footprintOf(item), elevation);
 
     sprite.position.set(point.x, point.y);
     sprite.zIndex = zIndexOf(item, this.items);
     sprite.alpha = this.drag?.instanceId === item.instanceId ? 0.75 : 1;
+
+    // The art has one facing, so odd turns draw it mirrored about its anchor —
+    // the footprint's base centre, which sits on the mirror axis — and that
+    // transposes the footprint rhombus the art stands on exactly onto the
+    // item's turned tiles. The same move the whole room makes on odd views.
+    const ratio = 1 / ASSET_PIXEL_RATIO;
+    sprite.scale.set(item.turns % 2 === 1 ? -ratio : ratio, ratio);
   }
 
   private drawFloor(): void {
@@ -289,11 +310,11 @@ export class StudioScene {
     );
     if (!item) return;
 
-    const asset = assetOf(item);
     const elevation = elevationOf(item, this.items);
+    const footprint = footprintOf(item);
 
-    for (let dx = 0; dx < asset.footprint.w; dx++) {
-      for (let dy = 0; dy < asset.footprint.d; dy++) {
+    for (let dx = 0; dx < footprint.w; dx++) {
+      for (let dy = 0; dy < footprint.d; dy++) {
         const diamond = tileDiamond(item.cell.x + dx, item.cell.y + dy).map(
           (value, index) => (index % 2 === 0 ? value : value - elevation),
         );
@@ -321,7 +342,10 @@ export class StudioScene {
 
     const next: SelectionAnchor | null =
       sprite && item && this.selectedId
-        ? anchorOf(sprite, this.selectedId, item, this.drag?.instanceId)
+        ? {
+            ...anchorOf(sprite, this.selectedId, item, this.drag?.instanceId),
+            canRotate: canRotate(this.items, this.selectedId),
+          }
         : null;
 
     // Panning calls this on every pointer frame; most frames say nothing new.
@@ -422,10 +446,12 @@ export class StudioScene {
     if (!this.pan.moved && Math.hypot(dx, dy) < PAN_THRESHOLD) return;
 
     this.pan.moved = true;
-    const scale = this.world.scale.x;
+    // Each axis divides by its own scale: on a mirrored view x carries the
+    // mirror's sign, and panning is a screen-space gesture, so a drag right
+    // moves the room right whichever way it faces.
     this.focus = {
-      x: this.pan.focus.x - dx / scale,
-      y: this.pan.focus.y - dy / scale,
+      x: this.pan.focus.x - dx / this.world.scale.x,
+      y: this.pan.focus.y - dy / this.world.scale.y,
     };
     this.applyFocus();
   }
@@ -481,11 +507,11 @@ export class StudioScene {
         return;
       }
 
-      // Two-finger scroll pans, the same as dragging the floor.
-      const scale = this.world.scale.x;
+      // Two-finger scroll pans, the same as dragging the floor. Per-axis for
+      // the same reason as the pan above.
       this.focus = {
-        x: this.focus.x + deltaX / scale,
-        y: this.focus.y + deltaY / scale,
+        x: this.focus.x + deltaX / this.world.scale.x,
+        y: this.focus.y + deltaY / this.world.scale.y,
       };
       this.applyFocus();
     };
@@ -526,41 +552,72 @@ export class StudioScene {
     if (this.destroyed || !this.app.renderer) return;
 
     this.focus = roomCenter();
-    this.world.scale.set(this.fitZoom());
+    this.applyScale(this.fitZoom());
     this.followFit = true;
     this.applyFocus();
     this.callbacks.onCameraChange(this.cameraState());
   }
 
+  /**
+   * Steps the view one quarter turn clockwise around the room. Until art has
+   * real facings, a turn to an odd side mirrors the whole world container
+   * rather than each sprite: art, positions, tiles and the drag mapping flip
+   * together, so a laptop standing on a desk is still standing on it
+   * afterwards, and the floor — symmetric about its centre — looks untouched.
+   */
+  rotateView(): void {
+    if (this.destroyed || !this.app.renderer) return;
+
+    const next = rotatedClockwise(this.turns);
+    if (next === this.turns) return;
+    this.turns = next;
+
+    this.applyScale(this.zoom());
+    this.reportSelection();
+  }
+
   private zoomBy(factor: number, at?: ScreenPoint): void {
-    this.setZoom(this.world.scale.x * factor, at ?? this.viewCenter());
+    this.setZoom(this.zoom() * factor, at ?? this.viewCenter());
+  }
+
+  /** Zoom magnitude. The world's x scale carries the view's mirror sign. */
+  private zoom(): number {
+    return Math.abs(this.world.scale.x);
+  }
+
+  /** Applies a zoom magnitude, mirroring the world on the odd views. */
+  private applyScale(zoom: number): void {
+    this.world.scale.set(viewState(this.turns).mirrored ? -zoom : zoom, zoom);
   }
 
   /**
    * Changes the zoom while holding the world point under `at` still, which is
-   * what makes pinching and wheel-zooming feel anchored to the pointer.
+   * what makes pinching and wheel-zooming feel anchored to the pointer. The
+   * mirrored x axis anchors with the sign flipped, but the gesture reads the
+   * same on screen whichever way the room faces.
    */
   private setZoom(zoom: number, at: ScreenPoint): void {
     if (this.destroyed || !this.app.renderer) return;
 
-    const from = this.world.scale.x;
+    const from = this.zoom();
     const to = clamp(zoom, MIN_ZOOM, MAX_ZOOM);
     if (to === from) return;
 
     const center = this.viewCenter();
+    const mirror = viewState(this.turns).mirrored ? -1 : 1;
     this.focus = {
-      x: this.focus.x + (at.x - center.x) * (1 / from - 1 / to),
+      x: this.focus.x + (at.x - center.x) * mirror * (1 / from - 1 / to),
       y: this.focus.y + (at.y - center.y) * (1 / from - 1 / to),
     };
 
     this.followFit = false;
-    this.world.scale.set(to);
+    this.applyScale(to);
     this.applyFocus();
     this.callbacks.onCameraChange(this.cameraState());
   }
 
   private cameraState(): CameraState {
-    const zoom = this.world.scale.x;
+    const zoom = this.zoom();
     return {
       zoom,
       canZoomIn: zoom < MAX_ZOOM,
@@ -593,7 +650,7 @@ export class StudioScene {
   private updateCamera(): void {
     if (this.destroyed || !this.app.renderer) return;
 
-    if (this.followFit) this.world.scale.set(this.fitZoom());
+    if (this.followFit) this.applyScale(this.fitZoom());
     this.applyFocus();
     this.callbacks.onCameraChange(this.cameraState());
   }
@@ -606,7 +663,6 @@ export class StudioScene {
   private applyFocus(): void {
     const { width, height } = this.app.screen;
     const bounds = roomBounds();
-    const scale = this.world.scale.x;
 
     this.focus = {
       x: clamp(this.focus.x, bounds.left, bounds.right),
@@ -614,8 +670,8 @@ export class StudioScene {
     };
 
     this.world.position.set(
-      width / 2 - this.focus.x * scale,
-      height / 2 - this.focus.y * scale,
+      width / 2 - this.focus.x * this.world.scale.x,
+      height / 2 - this.focus.y * this.world.scale.y,
     );
 
     // The one funnel every camera change passes through, so the toolbar stays

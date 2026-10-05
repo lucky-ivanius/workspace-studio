@@ -2,8 +2,18 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { artFor } from "./art";
 import { cellsOverlap, isInsideRoom } from "./grid";
-import { canPlace, deskAt, findPlacement, zIndexOf } from "./placement";
-import type { PlacedItem } from "./types";
+import {
+  canPlace,
+  canRotate,
+  deskAt,
+  findPlacement,
+  footprintOf,
+  rotated,
+  rotatedCell,
+  rotatedFootprint,
+  zIndexOf,
+} from "./placement";
+import type { PlacedItem, QuarterTurns } from "./types";
 
 /** Product ids, as the store and the catalogue know them. */
 const DESK = "electrical-adjustable-desk";
@@ -28,6 +38,7 @@ function place(
   productId: string,
   cell: { x: number; y: number },
   hostId?: string,
+  turns: QuarterTurns = 0,
 ): PlacedItem {
   nextOrdinal += 1;
   return {
@@ -36,6 +47,7 @@ function place(
     cell,
     surface: hostId ? "desk" : "floor",
     hostId,
+    turns,
     ordinal: nextOrdinal,
   };
 }
@@ -243,4 +255,164 @@ test("the first desk lands in the middle of the room, not in a corner", () => {
 
   // An 8x4 desk centred in a 24x24 room.
   assert.deepEqual(placement.cell, { x: 8, y: 10 });
+});
+
+test("odd turns transpose a footprint, even turns hand it back", () => {
+  const tall = { w: 2, d: 1 };
+
+  assert.deepEqual(rotatedFootprint(tall, 0), { w: 2, d: 1 });
+  assert.deepEqual(rotatedFootprint(tall, 1), { w: 1, d: 2 });
+  assert.deepEqual(rotatedFootprint(tall, 2), { w: 2, d: 1 });
+  assert.deepEqual(rotatedFootprint(tall, 3), { w: 1, d: 2 });
+  assert.deepEqual(rotatedFootprint(tall, 4), { w: 2, d: 1 });
+  assert.deepEqual(rotatedFootprint(tall, -1), { w: 1, d: 2 });
+});
+
+test("a turn keeps the footprint's centre, rounded onto the tile grid", () => {
+  // Centre (6, 3.5); a 1x2 result rounds to the nearest whole cell.
+  assert.deepEqual(
+    rotatedCell({ x: 5, y: 3 }, { w: 2, d: 1 }, { w: 1, d: 2 }),
+    {
+      x: 6,
+      y: 3,
+    },
+  );
+  // A square footprint cannot move: its centre is always its anchor.
+  assert.deepEqual(
+    rotatedCell({ x: 5, y: 3 }, { w: 2, d: 2 }, { w: 2, d: 2 }),
+    {
+      x: 5,
+      y: 3,
+    },
+  );
+  // An even turn changes nothing, so nothing moves.
+  assert.deepEqual(
+    rotatedCell({ x: 5, y: 3 }, { w: 2, d: 1 }, { w: 2, d: 1 }),
+    {
+      x: 5,
+      y: 3,
+    },
+  );
+});
+
+test("the tiles an item occupies follow its turns, not just its drawing", () => {
+  // An 8x4 desk turned once stands on a 4x8 set of tiles.
+  const desk = place(DESK, { x: 8, y: 10 }, undefined, 1);
+
+  assert.deepEqual(footprintOf(desk), { w: 4, d: 8 });
+});
+
+test("a desk with room to spare takes its clockwise quarter turn", () => {
+  const desk = place(DESK, { x: 8, y: 10 });
+
+  const next = rotated([desk], desk.instanceId);
+  assert.ok(next);
+
+  const turned = next.find((item) => item.instanceId === desk.instanceId);
+  assert.ok(turned);
+  // Centre-preserving: an 8x4 at (8,10) becomes a 4x8 at (10,8).
+  assert.deepEqual(turned.cell, { x: 10, y: 8 });
+  assert.equal(turned.turns, 1);
+});
+
+test("a turn is refused when the turned tiles would leave the room", () => {
+  // An 8x4 desk hugging the bottom edge turns into a 4x8 that runs past it.
+  const desk = place(DESK, { x: 0, y: 20 });
+
+  assert.equal(canRotate([desk], desk.instanceId), false);
+  assert.equal(rotated([desk], desk.instanceId), undefined);
+});
+
+test("a turn is refused when the turned tiles would clip a neighbour", () => {
+  const desk = place(DESK, { x: 8, y: 10 });
+  // Clear of the desk as it stands, but sitting where its turned shape lands.
+  const plant = place(PLANT, { x: 12, y: 8 });
+  const items = [desk, plant];
+
+  assert.equal(canRotate(items, desk.instanceId), false);
+  // Nothing moved: the refusal is the whole turn or nothing.
+  assert.deepEqual(
+    items.map((item) => item.cell),
+    [
+      { x: 8, y: 10 },
+      { x: 12, y: 8 },
+    ],
+  );
+});
+
+test("a desk turn carries its riders, each orbiting the desk's centre", () => {
+  const desk = place(DESK, { x: 4, y: 4 });
+  const keyboard = place(KEYBOARD, { x: 4, y: 4 }, desk.instanceId);
+  const items = [desk, keyboard];
+
+  const next = rotated(items, desk.instanceId);
+  assert.ok(next);
+
+  const turnedDesk = next.find((item) => item.instanceId === desk.instanceId);
+  const turnedKeyboard = next.find(
+    (item) => item.instanceId === keyboard.instanceId,
+  );
+  assert.ok(turnedDesk && turnedKeyboard);
+
+  assert.deepEqual(turnedDesk.cell, { x: 6, y: 2 });
+  assert.equal(turnedDesk.turns, 1);
+  // The keyboard sat at the desk's back corner; carried around clockwise it
+  // arrives on the turned surface's right edge, turned with the desk.
+  assert.deepEqual(turnedKeyboard.cell, { x: 9, y: 2 });
+  assert.equal(turnedKeyboard.turns, 1);
+  assert.equal(turnedKeyboard.hostId, desk.instanceId);
+});
+
+test("a desk item may turn within its desk", () => {
+  const desk = place(DESK, { x: 0, y: 0 });
+  const keyboard = place(KEYBOARD, { x: 2, y: 1 }, desk.instanceId);
+  const items = [desk, keyboard];
+
+  const next = rotated(items, keyboard.instanceId);
+  assert.ok(next);
+
+  const turned = next.find((item) => item.instanceId === keyboard.instanceId);
+  assert.ok(turned);
+  assert.deepEqual(turned.cell, { x: 3, y: 1 });
+  assert.equal(turned.turns, 1);
+  // The desk itself is untouched by its rider's turn.
+  const host = next.find((item) => item.instanceId === desk.instanceId);
+  assert.ok(host);
+  assert.deepEqual(host.cell, { x: 0, y: 0 });
+  assert.equal(host.turns, 0);
+});
+
+test("a desk item that would turn off its desk is refused", () => {
+  const desk = place(DESK, { x: 0, y: 0 });
+  // A 2x1 keyboard on the desk's last row turns into a 1x2 that hangs past it.
+  const keyboard = place(KEYBOARD, { x: 0, y: 3 }, desk.instanceId);
+  const items = [desk, keyboard];
+
+  assert.equal(canRotate(items, keyboard.instanceId), false);
+  assert.deepEqual(
+    items.find((item) => item.instanceId === keyboard.instanceId)?.cell,
+    { x: 0, y: 3 },
+  );
+});
+
+test("the desk under a rotated item still reads through its turned surface", () => {
+  // A desk turned to 4x8 answers for the tiles it occupies now.
+  const next = rotated([place(DESK, { x: 8, y: 10 })], "none-such");
+  assert.equal(next, undefined, "an unknown instance has nothing to turn");
+
+  const desk = place(DESK, { x: 8, y: 10 });
+  const turned = rotated([desk], desk.instanceId);
+  assert.ok(turned);
+  const turnedDesk = turned[0];
+
+  assert.equal(
+    deskAt(turned, { x: 10, y: 8 })?.instanceId,
+    turnedDesk.instanceId,
+    "the turned desk owns its new back corner",
+  );
+  assert.equal(
+    deskAt(turned, { x: 8, y: 10 }),
+    undefined,
+    "the old back corner is floor again",
+  );
 });

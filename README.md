@@ -14,7 +14,6 @@ scene depth-sorts as you drag things around.
 
 ```bash
 pnpm install
-pnpm exec playwright install chromium   # once, for the browser tests
 pnpm dev
 ```
 
@@ -27,7 +26,6 @@ Open http://localhost:3000.
 | `pnpm dev`                 | Dev server                                     |
 | `pnpm build`               | Production build                               |
 | `pnpm test`                | Unit tests: grid, placement, store, pricing    |
-| `pnpm test:e2e`            | Playwright browser tests (Chromium)            |
 | `pnpm typecheck`           | `tsc --noEmit`                                 |
 | `pnpm lint`                | Biome check                                    |
 | `pnpm format`              | Biome format                                   |

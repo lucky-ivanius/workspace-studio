@@ -24,6 +24,7 @@ function place(productId: string): PlacedItem {
     productId,
     cell: { x: 0, y: 0 },
     surface: "floor",
+    turns: 0,
     ordinal: nextOrdinal,
   };
 }
