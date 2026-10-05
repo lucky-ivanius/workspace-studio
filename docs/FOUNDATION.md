@@ -302,41 +302,15 @@ file at the wrong size and `pnpm test` tells you which file and what size it
 should be. `model/art.test.ts` asserts `artProblems()` is empty, so a mistake in
 a hand-written `studio` block fails the suite with a sentence explaining it.
 
-**`pnpm test:e2e`** runs Playwright against Chromium. It builds the app and
-serves it, so the run always reflects current code. These tests cover the wiring
-the unit tests cannot: that WebGL actually boots, that catalog clicks place items
-on the canvas, that a pointer drag moves an item to a new tile, that dragging
-empty space pans the camera instead, that the zoom menu, shortcuts, pinch and
-scroll all drive the camera, and that the checkout arithmetic shown on screen
-adds up.
-
-The picker has its own tests for the three ways an add can end: a placement
-closes it, a cart-only product leaves it open with the card reporting the add,
-and a confirmation opens over it without taking it away. One more asserts that
-switching category puts the grid back at the top of the list.
-
-A note on reading those: while a confirmation is open, Base UI hides everything
-under it from the accessibility tree, so `getByRole("dialog")` cannot see the
-picker even though it is still on screen. The tests assert the picker is back
-once the question is answered, which is the part that matters anyway.
-
-Every e2e test asserts no console errors or uncaught exceptions occurred, so a
-failed texture load or a Pixi error fails the suite rather than going unnoticed.
-
-None of the camera tests hardcode screen positions. They scan the canvas for the
-`grab` cursor Pixi sets over an item to find a sprite, then assert on the cursor
-where that sprite should have ended up. That exercises real hit-testing and stays
-correct if the camera changes. The floor carries a `move` cursor rather than
-`grab`, which is what lets the scan tell items apart from empty space.
+Browser-level checks (WebGL boot, canvas placement, drags, camera, on-screen
+arithmetic) are done ad hoc with the agent-browser CLI driving a real browser
+against `pnpm dev`, rather than by a committed e2e suite.
 
 ### CI
 
-`.github/workflows/ci.yml` runs on every push to `main` and every pull request,
-as two parallel jobs:
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request:
 
 - **check** — `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`
-- **e2e** — `pnpm test:e2e` on Chromium, with the browser cached by Playwright
-  version. The Playwright report and traces upload as an artifact on failure.
 
 The Node version comes from `.node-version`, which local tooling (nvm, fnm,
 Volta) reads too, so there is one place to change it. The pnpm version comes
@@ -419,7 +393,6 @@ cart to fall back to, so it simply goes.
 ```bash
 pnpm dev                  # dev server
 pnpm test                 # unit tests: grid, placement, store, pricing, assets
-pnpm test:e2e             # Playwright browser tests
 pnpm typecheck            # tsc --noEmit
 pnpm lint                 # biome check
 pnpm build                # production build
@@ -428,16 +401,6 @@ pnpm catalog:sync         # re-seed product data from monis.rent
 pnpm art:index            # list public/assets/studio into art-index.json
 pnpm assets:placeholders  # draw missing placeholder art
 ```
-
-Playwright needs its browser once per machine:
-
-```bash
-pnpm exec playwright install chromium
-```
-
-Useful flags: `pnpm test:e2e --ui` for the interactive runner,
-`pnpm test:e2e --headed` to watch it drive a real window, and
-`pnpm test:e2e --grep "dragging"` to run one test.
 
 ## Open items
 
