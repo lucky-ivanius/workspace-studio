@@ -6,9 +6,9 @@ against. For the brief, see [REQUIREMENTS.md](./REQUIREMENTS.md).
 ## What runs today
 
 Open the app and you can add a desk, add a chair and accessories, drag anything
-to a new tile, pan and zoom around the room, and watch the checkout summary
-update with live monis.rent prices. That loop exists to prove the foundation, not
-to be the final product.
+to a new tile, pan and zoom around the room, turn the view in quarter steps, and
+watch the checkout summary update with live monis.rent prices. That loop exists
+to prove the foundation, not to be the final product.
 
 ## Stack
 
@@ -40,7 +40,7 @@ src/features/studio/
     placement.ts  Placement rules, surfaces, draw order
   state/        zustand store and the checkout summary selector
   engine/       Pixi: asset loading and the scene
-  components/   React: canvas mount, catalog panel, summary panel, zoom menu
+  components/   React: canvas mount, catalog panel, summary panel, zoom and view controls
 
 e2e/            Playwright browser tests
 scripts/
@@ -113,6 +113,21 @@ The focus is clamped to the room's bounds. That means any corner of the floor ca
 be brought to the middle of the view, and the floor can never be pushed off
 screen. A resize re-fits the zoom only while the user has not chosen one of their
 own, so a pan or a deliberate zoom always survives a window change.
+
+### The view
+
+The rotate control turns the view in quarter steps — front, right, back, left —
+with the turns living in the scene beside the zoom and reporting through
+`onViewChange`. Every drawing still has a single facing, so a view that would
+show the room from its blind side is drawn as its horizontal mirror: on odd
+turns the whole world container mirrors (`scale.x` goes negative), which
+transposes the layout along with the art. Anything standing on a desk stays
+standing on it, the selection tiles and toolbar follow, and drag mapping keeps
+working — the floor is symmetric about its centre, so it looks unchanged.
+Everything that reads the world's scale treats it as a magnitude (`zoom()`)
+and divides screen-space gestures per axis, since x now carries the mirror's
+sign. Real facings per view replace the stopgap; the parity rule lives in
+`model/view.ts`.
 
 ### Draw order
 
