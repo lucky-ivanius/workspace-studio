@@ -9,8 +9,10 @@ import {
   canPlace,
   deskAt,
   findPlacement,
+  footprintOf,
   hasDesk,
   type Placement,
+  rotated,
 } from "../model/placement";
 import type { PlacedItem } from "../model/types";
 
@@ -54,6 +56,13 @@ export type StudioState = {
    */
   removeCopy: (productId: string) => void;
   moveItem: (instanceId: string, cell: GridCell) => boolean;
+  /**
+   * Turns one item a quarter clockwise where it stands, keeping its footprint
+   * centred. A desk turns whatever stands on it with the same move. When the
+   * turned tiles would not fit — the room, the host surface, or a neighbour
+   * in the way — the turn is refused and nothing changes.
+   */
+  rotateItem: (instanceId: string) => boolean;
   /**
    * Takes one item out of the room. Whatever stood on it moves to the cart, so
    * clearing a desk off the canvas never changes what anything else costs.
@@ -101,7 +110,12 @@ function resolveTarget(
   const asset = assetOf(item);
 
   if (asset.surface === "floor") {
-    return { cell: clampToRoom(cell, asset.footprint), surface: "floor" };
+    // The footprint as it stands — a rotated item drags with its turned
+    // shape, so the clamp holds its tiles inside the room.
+    return {
+      cell: clampToRoom(cell, footprintOf(item)),
+      surface: "floor",
+    };
   }
 
   const host = deskAt(items, cell, item.instanceId);
@@ -146,6 +160,7 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
           cell: placement.cell,
           surface: placement.surface,
           hostId: placement.hostId,
+          turns: 0,
           ordinal: ordinalCounter,
         },
       ],
@@ -197,7 +212,7 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
     if (!target) return false;
 
     const asset = assetOf(item);
-    if (!canPlace(items, asset, target, instanceId)) return false;
+    if (!canPlace(items, asset, target, instanceId, item.turns)) return false;
 
     // Anything resting on a moved desk rides along. Desk items hold absolute
     // cells, so shifting them by the same delta keeps each one on the spot of
@@ -232,6 +247,16 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
       }),
     });
 
+    return true;
+  },
+
+  rotateItem(instanceId) {
+    // The model owns the geometry and the fit checks; the store only decides
+    // whether the room ends up standing that way.
+    const next = rotated(get().items, instanceId);
+    if (!next) return false;
+
+    set({ items: next });
     return true;
   },
 

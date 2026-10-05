@@ -3,6 +3,13 @@ import type { Footprint, GridCell } from "./grid";
 export type Surface = "floor" | "desk";
 
 /**
+ * Quarter turns clockwise from the drawing's native facing. Art has a single
+ * facing, so odd turns are drawn mirrored — the same parity rule the room view
+ * uses — and a full cycle lands back on the front.
+ */
+export type QuarterTurns = 0 | 1 | 2 | 3;
+
+/**
  * The shape of one drawing: the two numbers every PNG dimension is derived from,
  * plus the handful of flags that say how the thing behaves once it is in the
  * room. See `isoAsset` in assets.ts for what is computed from them.
@@ -69,5 +76,7 @@ export type PlacedItem = {
   surface: Surface;
   /** Desk instance this item rests on, when surface is "desk". */
   hostId?: string;
+  /** Quarter turns clockwise from the art's native facing. */
+  turns: QuarterTurns;
   ordinal: number;
 };

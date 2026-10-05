@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, RotateCwIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SelectionAnchor } from "../engine/scene";
 
@@ -11,10 +11,13 @@ import type { SelectionAnchor } from "../engine/scene";
  */
 export function SelectionToolbar({
   anchor,
+  onRotate,
   onRemove,
   onAdd,
 }: {
   anchor: SelectionAnchor;
+  /** Spins the item a quarter clockwise; disabled when the tiles would not fit. */
+  onRotate: () => void;
   onRemove: () => void;
   /** Opens the picker for this desk, so whatever is chosen lands on it. */
   onAdd: (hostId: string) => void;
@@ -40,6 +43,22 @@ export function SelectionToolbar({
 
       <Button
         variant="ghost"
+        size="icon-xs"
+        className="pointer-events-auto"
+        disabled={!anchor.canRotate}
+        onClick={onRotate}
+        aria-label="Rotate clockwise"
+        title={
+          anchor.canRotate
+            ? "Rotate clockwise"
+            : "There is no room for this to turn here"
+        }
+      >
+        <RotateCwIcon />
+      </Button>
+
+      <Button
+        variant="destructive"
         size="icon-xs"
         className="pointer-events-auto"
         onClick={onRemove}

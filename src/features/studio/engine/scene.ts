@@ -18,14 +18,15 @@ import {
   screenToTile,
   tileDiamond,
 } from "../model/grid";
-import { assetOf, elevationOf, zIndexOf } from "../model/placement";
-import type { PlacedItem } from "../model/types";
 import {
-  rotatedLeft,
-  rotatedRight,
-  type ViewState,
-  viewState,
-} from "../model/view";
+  assetOf,
+  canRotate,
+  elevationOf,
+  footprintOf,
+  zIndexOf,
+} from "../model/placement";
+import type { PlacedItem, QuarterTurns } from "../model/types";
+import { rotatedClockwise, viewState } from "../model/view";
 import { loadStudioAssets } from "./assets";
 
 /** Everything the zoom control needs to render itself. */
@@ -46,6 +47,11 @@ export type SelectionAnchor = {
   y: number;
   /** Desks get the extra "add to this desk" menu. */
   isDesk: boolean;
+  /**
+   * False when the item's tiles cannot take a clockwise turn where they
+   * stand, which is what disables the toolbar's rotate button.
+   */
+  canRotate: boolean;
   /** True mid-drag, so the toolbar can step out of the way. */
   dragging: boolean;
 };
@@ -59,8 +65,6 @@ export type SceneCallbacks = {
   onMove: (instanceId: string, cell: GridCell) => void;
   /** Fires when the zoom changes, never on a pan. */
   onCameraChange: (camera: CameraState) => void;
-  /** Fires when the view turns to another side of the room. */
-  onViewChange: (view: ViewState) => void;
   /** Fires whenever the selected item's screen position changes. */
   onSelectionChange: (anchor: SelectionAnchor | null) => void;
 };
@@ -116,6 +120,7 @@ function sameAnchor(
     a.x === b.x &&
     a.y === b.y &&
     a.isDesk === b.isDesk &&
+    a.canRotate === b.canRotate &&
     a.dragging === b.dragging
   );
 }
@@ -130,7 +135,7 @@ function anchorOf(
   instanceId: string,
   item: PlacedItem,
   draggingId: string | undefined,
-): SelectionAnchor {
+): Omit<SelectionAnchor, "canRotate"> {
   const bounds = sprite.getBounds();
   return {
     instanceId,
@@ -154,7 +159,7 @@ export class StudioScene {
   /** World point held at the middle of the view. Panning moves it. */
   private focus: ScreenPoint = roomCenter();
   /** Quarter turns clockwise from the front view. */
-  private turns: ViewState["turns"] = 0;
+  private turns: QuarterTurns = 0;
   /** While true, a resize re-fits the zoom instead of preserving it. */
   private followFit = true;
   private items: PlacedItem[] = [];
@@ -263,13 +268,19 @@ export class StudioScene {
   }
 
   private positionSprite(sprite: Sprite, item: PlacedItem): void {
-    const asset = assetOf(item);
     const elevation = elevationOf(item, this.items);
-    const point = anchorToScreen(item.cell, asset.footprint, elevation);
+    const point = anchorToScreen(item.cell, footprintOf(item), elevation);
 
     sprite.position.set(point.x, point.y);
     sprite.zIndex = zIndexOf(item, this.items);
     sprite.alpha = this.drag?.instanceId === item.instanceId ? 0.75 : 1;
+
+    // The art has one facing, so odd turns draw it mirrored about its anchor —
+    // the footprint's base centre, which sits on the mirror axis — and that
+    // transposes the footprint rhombus the art stands on exactly onto the
+    // item's turned tiles. The same move the whole room makes on odd views.
+    const ratio = 1 / ASSET_PIXEL_RATIO;
+    sprite.scale.set(item.turns % 2 === 1 ? -ratio : ratio, ratio);
   }
 
   private drawFloor(): void {
@@ -299,11 +310,11 @@ export class StudioScene {
     );
     if (!item) return;
 
-    const asset = assetOf(item);
     const elevation = elevationOf(item, this.items);
+    const footprint = footprintOf(item);
 
-    for (let dx = 0; dx < asset.footprint.w; dx++) {
-      for (let dy = 0; dy < asset.footprint.d; dy++) {
+    for (let dx = 0; dx < footprint.w; dx++) {
+      for (let dy = 0; dy < footprint.d; dy++) {
         const diamond = tileDiamond(item.cell.x + dx, item.cell.y + dy).map(
           (value, index) => (index % 2 === 0 ? value : value - elevation),
         );
@@ -331,7 +342,10 @@ export class StudioScene {
 
     const next: SelectionAnchor | null =
       sprite && item && this.selectedId
-        ? anchorOf(sprite, this.selectedId, item, this.drag?.instanceId)
+        ? {
+            ...anchorOf(sprite, this.selectedId, item, this.drag?.instanceId),
+            canRotate: canRotate(this.items, this.selectedId),
+          }
         : null;
 
     // Panning calls this on every pointer frame; most frames say nothing new.
@@ -544,34 +558,22 @@ export class StudioScene {
     this.callbacks.onCameraChange(this.cameraState());
   }
 
-  /** Steps the view one quarter turn anticlockwise around the room. */
-  rotateViewLeft(): void {
-    this.setViewTurns(rotatedLeft(this.turns));
-  }
-
-  /** Steps the view one quarter turn clockwise around the room. */
-  rotateViewRight(): void {
-    this.setViewTurns(rotatedRight(this.turns));
-  }
-
   /**
-   * Turns the room to a new side. Until art has real facings, a turn to an odd
-   * side mirrors the whole world container rather than each sprite: art,
-   * positions, tiles and the drag mapping flip together, so a laptop standing
-   * on a desk is still standing on it afterwards, and the floor — symmetric
-   * about its centre — looks untouched.
+   * Steps the view one quarter turn clockwise around the room. Until art has
+   * real facings, a turn to an odd side mirrors the whole world container
+   * rather than each sprite: art, positions, tiles and the drag mapping flip
+   * together, so a laptop standing on a desk is still standing on it
+   * afterwards, and the floor — symmetric about its centre — looks untouched.
    */
-  private setViewTurns(turns: number): void {
+  rotateView(): void {
     if (this.destroyed || !this.app.renderer) return;
 
-    const view = viewState(turns);
-    if (view.turns === this.turns) return;
+    const next = rotatedClockwise(this.turns);
+    if (next === this.turns) return;
+    this.turns = next;
 
-    this.turns = view.turns;
     this.applyScale(this.zoom());
-
     this.reportSelection();
-    this.callbacks.onViewChange(view);
   }
 
   private zoomBy(factor: number, at?: ScreenPoint): void {

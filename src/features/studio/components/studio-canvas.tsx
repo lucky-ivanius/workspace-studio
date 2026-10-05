@@ -16,7 +16,6 @@ import {
   type SelectionAnchor,
   StudioScene,
 } from "../engine/scene";
-import { type ViewState, viewState } from "../model/view";
 import { useStudioStore } from "../state/store";
 import { useAddFlow } from "../state/use-add-flow";
 import { AddItemDialog } from "./add-item-dialog";
@@ -36,7 +35,6 @@ export function StudioCanvas() {
     canZoomIn: true,
     canZoomOut: true,
   });
-  const [view, setView] = useState<ViewState>(() => viewState(0));
   const [anchor, setAnchor] = useState<SelectionAnchor | null>(null);
   /**
    * null  → closed
@@ -47,6 +45,7 @@ export function StudioCanvas() {
 
   const isEmpty = useStudioStore((state) => state.items.length === 0);
   const removeItem = useStudioStore((state) => state.removeItem);
+  const rotateItem = useStudioStore((state) => state.rotateItem);
   const { add, confirm, cancel, pending } = useAddFlow();
 
   useEffect(() => {
@@ -58,7 +57,6 @@ export function StudioCanvas() {
       onMove: (instanceId, cell) =>
         useStudioStore.getState().moveItem(instanceId, cell),
       onCameraChange: setCamera,
-      onViewChange: setView,
       onSelectionChange: setAnchor,
     });
     sceneRef.current = scene;
@@ -94,8 +92,7 @@ export function StudioCanvas() {
     zoomOut: () => sceneRef.current?.zoomOut(),
     zoomTo: (zoom: number) => sceneRef.current?.zoomTo(zoom),
     zoomToFit: () => sceneRef.current?.zoomToFit(),
-    rotateViewLeft: () => sceneRef.current?.rotateViewLeft(),
-    rotateViewRight: () => sceneRef.current?.rotateViewRight(),
+    rotateView: () => sceneRef.current?.rotateView(),
   }).current;
 
   const ready = status === "ready";
@@ -140,6 +137,7 @@ export function StudioCanvas() {
       {ready && anchor && !anchor.dragging && (
         <SelectionToolbar
           anchor={anchor}
+          onRotate={() => rotateItem(anchor.instanceId)}
           onRemove={() => removeItem(anchor.instanceId)}
           onAdd={setPickingForDesk}
         />
@@ -147,7 +145,7 @@ export function StudioCanvas() {
 
       {ready && (
         <div className="absolute top-3 right-3 flex items-center gap-2">
-          <ViewControls view={view} commands={commands} />
+          <ViewControls commands={commands} />
           <ZoomMenu camera={camera} commands={commands} />
         </div>
       )}

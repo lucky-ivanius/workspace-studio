@@ -174,6 +174,66 @@ test("moving a missing item is a no-op", () => {
   assert.equal(store().moveItem("nope", { x: 1, y: 1 }), false);
 });
 
+test("rotating turns an item a quarter clockwise where it stands", () => {
+  const id = place(DESK);
+
+  assert.equal(store().rotateItem(id), true);
+
+  const desk = store().items[0];
+  // Centre-preserving: the 8x4 at (8,10) becomes a 4x8 at (10,8).
+  assert.deepEqual(desk.cell, { x: 10, y: 8 });
+  assert.equal(desk.turns, 1);
+  // A rotation is not a selection change.
+  assert.equal(store().selectedId, id);
+});
+
+test("rotating twice turns the item halfway and back onto its tiles", () => {
+  const id = place(DESK);
+
+  store().rotateItem(id);
+  store().rotateItem(id);
+
+  const desk = store().items[0];
+  assert.equal(desk.turns, 2);
+  assert.deepEqual(desk.cell, { x: 8, y: 10 });
+});
+
+test("a turn that would not fit is refused and changes nothing", () => {
+  const id = place(DESK);
+  assert.equal(store().moveItem(id, { x: 0, y: 20 }), true);
+
+  // The 4x8 turn runs past the room's bottom edge.
+  assert.equal(store().rotateItem(id), false);
+
+  const desk = store().items[0];
+  assert.deepEqual(desk.cell, { x: 0, y: 20 });
+  assert.equal(desk.turns, 0);
+});
+
+test("rotating a desk carries whatever stands on it", () => {
+  const desk = place(DESK);
+  assert.equal(store().moveItem(desk, { x: 4, y: 4 }), true);
+  const keyboard = place(KEYBOARD, desk);
+
+  assert.equal(store().rotateItem(desk), true);
+
+  const turnedDesk = store().items.find((item) => item.instanceId === desk);
+  const rider = store().items.find((item) => item.instanceId === keyboard);
+  assert.ok(turnedDesk && rider);
+
+  assert.deepEqual(turnedDesk.cell, { x: 6, y: 2 });
+  assert.equal(turnedDesk.turns, 1);
+  // The rider orbited the desk's centre with the turn, from the back corner
+  // onto the turned surface's right edge.
+  assert.deepEqual(rider.cell, { x: 9, y: 2 });
+  assert.equal(rider.turns, 1);
+  assert.equal(rider.hostId, desk);
+});
+
+test("rotating a missing item is a no-op", () => {
+  assert.equal(store().rotateItem("nope"), false);
+});
+
 test("moving a desk carries whatever stands on it", () => {
   const desk = place(DESK);
   const keyboard = place(KEYBOARD);

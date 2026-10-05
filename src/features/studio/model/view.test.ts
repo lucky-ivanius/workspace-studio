@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { rotatedLeft, rotatedRight, viewState } from "./view";
+import { rotatedClockwise, viewState } from "./view";
 
 test("the front view is unmirrored", () => {
-  assert.deepEqual(viewState(0), { turns: 0, label: "Front", mirrored: false });
+  assert.deepEqual(viewState(0), { turns: 0, mirrored: false });
 });
 
-test("each quarter turn names the side it looks at", () => {
-  assert.deepEqual(viewState(1), { turns: 1, label: "Right", mirrored: true });
-  assert.deepEqual(viewState(2), { turns: 2, label: "Back", mirrored: false });
-  assert.deepEqual(viewState(3), { turns: 3, label: "Left", mirrored: true });
+test("each odd turn is drawn mirrored, each even turn upright", () => {
+  assert.deepEqual(viewState(1), { turns: 1, mirrored: true });
+  assert.deepEqual(viewState(2), { turns: 2, mirrored: false });
+  assert.deepEqual(viewState(3), { turns: 3, mirrored: true });
 });
 
 test("turns wrap around the four views", () => {
@@ -18,32 +18,21 @@ test("turns wrap around the four views", () => {
   assert.equal(viewState(-1).turns, 3);
 });
 
-test("the mirror follows the turns' parity, so a full cycle is honest", () => {
+test("clockwise steps walk the parity cycle and land back on the front", () => {
   let turns = 0;
   const mirrorings: boolean[] = [];
 
   for (let step = 0; step < 4; step++) {
     mirrorings.push(viewState(turns).mirrored);
-    turns = rotatedLeft(turns);
+    turns = rotatedClockwise(turns);
   }
 
   assert.deepEqual(mirrorings, [false, true, false, true]);
-  assert.equal(turns, 0, "four lefts land back on the front");
+  assert.equal(turns, 0, "four clockwise turns land back on the front");
 });
 
-test("rotating left from the front looks at the left side", () => {
-  assert.equal(rotatedLeft(0), 3);
-  assert.equal(viewState(rotatedLeft(0)).label, "Left");
-});
-
-test("rotating right from the front looks at the right side", () => {
-  assert.equal(rotatedRight(0), 1);
-  assert.equal(viewState(rotatedRight(0)).label, "Right");
-});
-
-test("the two directions undo each other", () => {
-  for (let turns = -8; turns < 8; turns++) {
-    assert.equal(rotatedRight(rotatedLeft(turns)), viewState(turns).turns);
-    assert.equal(rotatedLeft(rotatedRight(turns)), viewState(turns).turns);
-  }
+test("rotating clockwise from the front takes one turn", () => {
+  assert.equal(rotatedClockwise(0), 1);
+  assert.equal(rotatedClockwise(3), 0);
+  assert.equal(rotatedClockwise(-2), 3);
 });
